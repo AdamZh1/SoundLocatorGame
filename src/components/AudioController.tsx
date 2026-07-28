@@ -4,15 +4,17 @@ interface AudioControllerProps {
   onPlay: () => void;
   volume: number;
   onVolumeChange: (vol: number) => void;
+  disabled: boolean;
 }
 
-export const AudioController: React.FC<AudioControllerProps> = ({ onPlay, volume, onVolumeChange }) => {
+export const AudioController: React.FC<AudioControllerProps> = ({ onPlay, volume, onVolumeChange, disabled }) => {
   return (
     <div className="w-full h-full p-4 flex flex-col gap-4">
       <h2 className="text-xl font-bold">Audio Controller</h2>
       <button 
         onClick={onPlay}
-        className="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-blue-700 transition active:translate-y-[2px]"
+        disabled={disabled}
+        className="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-blue-700 transition active:translate-y-[2px] disabled:bg-gray-600 disabled:cursor-not-allowed"
       >
         Play Audio
       </button>

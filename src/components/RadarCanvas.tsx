@@ -3,9 +3,10 @@ import React, { useRef, useState, useEffect } from 'react';
 interface RadarCanvasProps {
   onGuessSubmit: (x: number, z: number) => void;
   gameState: 'INIT' | 'AUDIO_PLAYING' | 'GUESSING' | 'ROUND_REVEAL' | 'MATCH_OVER';
+  targetCoordinates: { x: number; z: number };
 }
 
-export const RadarCanvas: React.FC<RadarCanvasProps> = ({ onGuessSubmit, gameState }) => {
+export const RadarCanvas: React.FC<RadarCanvasProps> = ({ onGuessSubmit, gameState, targetCoordinates }) => {
   const radarRef = useRef<HTMLDivElement>(null);
   const [markerPos, setMarkerPos] = useState({ x: 0, y: 0 }); // Relative to center
   const [isDragging, setIsDragging] = useState(false);
