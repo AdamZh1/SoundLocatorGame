@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sound Locator Prototype</title>
+    <style>
+        body, html { height: 100%; margin: 0; font-family: sans-serif; background: linear-gradient(135deg, #111, #333); color: #fff; }
+        .container { display: flex; height: 100vh; }
+        .panel { padding: 20px; border: 1px solid #555; box-sizing: border-box; }
+        #left-panel { width: 20%; background: #222; }
+        #center-panel { width: 60%; display: flex; justify-content: center; align-items: center; position: relative; }
+        #right-panel { width: 20%; background: #222; }
+        
+        #play-btn { 
+            background-color: #3b82f6; 
+            color: white; 
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            transition: transform 0.1s; 
+        }
+        #play-btn:active { transform: translateY(2px); }
+        
+        #volume-container {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #555;
+            border-radius: 10px;
+            background: #333;
+        }
+        #volume { 
+            width: 95%; 
+            appearance: none; 
+            background: #444; 
+            height: 6px; 
+            border-radius: 3px; 
+            outline: none; 
+            cursor: pointer;
+        }
+        #volume::-webkit-slider-thumb { 
+            appearance: none; 
+            width: 15px; 
+            height: 15px; 
+            background: #fff; 
+            border-radius: 50%; 
+            cursor: pointer; 
+            transition: background 0.2s; 
+        }
+        #volume::-webkit-slider-thumb:hover { background: #ccc; }
+
+        #right-panel h2 { border: 2px solid #555; border-radius: 15px; padding: 10px; text-align: center; }
+        #history-list li { border: 1px solid #555; border-radius: 10px; padding: 10px; margin-bottom: 5px; list-style: none; }
+        
+        /* Placeholder Radar */
+        #radar { width: 400px; height: 400px; border-radius: 50%; border: 2px solid #fff; position: relative; }
+        .ring { position: absolute; border: 1px dashed #fff; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .ring::after { content: attr(data-label); position: absolute; top: 0; left: 50%; transform: translateX(-50%); font-size: 12px; color: #fff; }
+        
+        /* Listener */
+        #listener { width: 10px; height: 10px; background: #fff; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2; }
+        
+        /* Guess Marker */
+        #guess-marker { 
+            width: 12px; 
+            height: 12px; 
+            background: #22c55e; 
+            border-radius: 50%; 
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%);
+            cursor: grab; 
+            z-index: 3; 
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="left-panel" class="panel">
+            <h2>Audio Controller</h2>
+            <button id="play-btn">Play Audio</button>
+            <div id="volume-container">
+                <label style="display:block; margin-bottom: 5px;">Volume</label>
+                <input type="range" id="volume" min="0" max="1" step="0.01">
+            </div>
+        </div>
+        <div id="center-panel" class="panel">
+            <div id="radar">
+                <div id="listener"></div>
+                <div id="guess-marker"></div>
+                <div class="ring" style="width: 100px; height: 100px;" data-label="10m"></div>
+                <div class="ring" style="width: 200px; height: 200px;" data-label="20m"></div>
+                <div class="ring" style="width: 300px; height: 300px;" data-label="30m"></div>
+            </div>
+        </div>
+        <div id="right-panel" class="panel">
+            <h2>Match History</h2>
+            <ul id="history-list">
+                <li>Round 1: Pending</li>
+            </ul>
+        </div>
+    </div>
+    <script>
+        const marker = document.getElementById('guess-marker');
+        const radar = document.getElementById('radar');
+        let isDragging = false;
+
+        marker.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            marker.style.cursor = 'grabbing';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            
+            const rect = radar.getBoundingClientRect();
+            let x = e.clientX - rect.left;
+            let y = e.clientY - rect.top;
+
+            // Keep marker within radar
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const radius = rect.width / 2 - 6; // Back to -6
+            
+            // Adjust calculation: mouse position is absolute, but marker needs to be relative to center
+            const dx = e.clientX - (rect.left + centerX);
+            const dy = e.clientY - (rect.top + centerY);
+            
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            let finalX = dx;
+            let finalY = dy;
+
+            if (distance > radius) {
+                const angle = Math.atan2(dy, dx);
+                finalX = radius * Math.cos(angle);
+                finalY = radius * Math.sin(angle);
+            }
+
+            // Apply position relative to radar center (which is 50%, 50%)
+            marker.style.left = `calc(50% + ${finalX}px)`;
+            marker.style.top = `calc(50% + ${finalY}px)`;
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            marker.style.cursor = 'grab';
+        });
+    </script>
+</body>
+</html>
