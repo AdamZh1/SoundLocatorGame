@@ -6,7 +6,7 @@ interface RadarCanvasProps {
   targetCoordinates: { x: number; z: number };
 }
 
-export const RadarCanvas: React.FC<RadarCanvasProps> = ({ onGuessSubmit, gameState, targetCoordinates }) => {
+export const RadarCanvas: React.FC<RadarCanvasProps> = ({ onGuessSubmit }) => {
   const radarRef = useRef<HTMLDivElement>(null);
   const [markerPos, setMarkerPos] = useState({ x: 0, y: 0 }); // Relative to center
   const [isDragging, setIsDragging] = useState(false);

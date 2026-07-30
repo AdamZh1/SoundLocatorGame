@@ -6,10 +6,12 @@ import { useSpatialAudio } from './hooks/useSpatialAudio';
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<'INIT' | 'AUDIO_PLAYING' | 'GUESSING' | 'ROUND_REVEAL' | 'MATCH_OVER'>('INIT');
-  const [volume, setVolume] = useState(0.5);
+  const [volume, setVolume] = useState(0.014);
   const [matchHistory, setMatchHistory] = useState<string[]>([]);
   const [currentRound, setCurrentRound] = useState(1);
   const [targetCoordinates, setTargetCoordinates] = useState({ x: 0, z: 0 });
+  const [manualX, setManualX] = useState('');
+  const [manualZ, setManualZ] = useState('');
 
   const { playAudio, setVolume: setAudioVolume } = useSpatialAudio();
 
@@ -19,7 +21,7 @@ const App: React.FC = () => {
   };
 
   const generateTarget = () => {
-    const x = (Math.random() * 34 + 1) * (Math.random() > 0.5 ? 1 : -1);
+    const x = (Math.random() * 34 + 1) * (Math.random() > 0.5 ? 1 : -1); //random chance for negative
     const z = (Math.random() * 34 + 1) * (Math.random() > 0.5 ? 1 : -1);
     setTargetCoordinates({ x, z });
   };
@@ -30,7 +32,10 @@ const App: React.FC = () => {
 
   const handlePlay = () => {
     setGameState('AUDIO_PLAYING');
-    playAudio(targetCoordinates.x, targetCoordinates.z, volume);
+    const x = manualX !== '' ? parseFloat(manualX) : targetCoordinates.x;
+    const z = manualZ !== '' ? parseFloat(manualZ) : targetCoordinates.z;
+    console.log(x, z);
+    playAudio(x, z, volume);
     setTimeout(() => setGameState('GUESSING'), 1000);
   };
 
@@ -57,6 +62,10 @@ const App: React.FC = () => {
           volume={volume} 
           onVolumeChange={handleVolumeChange}
           disabled={gameState !== 'INIT'}
+          manualX={manualX}
+          manualZ={manualZ}
+          onManualXChange={setManualX}
+          onManualZChange={setManualZ}
         />
       </div>
 

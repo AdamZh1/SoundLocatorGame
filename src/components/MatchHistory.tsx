@@ -5,7 +5,7 @@ interface MatchHistoryProps {
   currentRound: number;
 }
 
-export const MatchHistory: React.FC<MatchHistoryProps> = ({ history, currentRound }) => {
+export const MatchHistory: React.FC<MatchHistoryProps> = ({ history }) => {
   return (
     <div className="w-full h-full p-4 flex flex-col gap-4">
       <h2 className="border-2 border-gray-600 rounded-[15px] p-2.5 text-center font-bold">Match History</h2>

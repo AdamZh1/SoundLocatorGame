@@ -16,7 +16,7 @@ export const useSpatialAudio = () => {
       pannerNode.current.distanceModel = 'inverse';
       pannerNode.current.refDistance = 1;
       pannerNode.current.maxDistance = 10000;
-      pannerNode.current.rolloffFactor = 1;
+      pannerNode.current.rolloffFactor = 0.2;
 
       pannerNode.current.connect(gainNode.current);
       gainNode.current.connect(audioContext.current.destination);
@@ -24,6 +24,7 @@ export const useSpatialAudio = () => {
   }, []);
 
   const playAudio = (x: number, z: number, volume: number) => {
+    console.log(volume);
     if (!audioContext.current || !gainNode.current || !pannerNode.current) return;
 
     // Resume context if suspended (browser autoplay policy)
