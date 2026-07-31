@@ -13,10 +13,10 @@ export const useSpatialAudio = () => {
       pannerNode.current = audioContext.current.createPanner();
       
       pannerNode.current.panningModel = 'HRTF';
-      pannerNode.current.distanceModel = 'inverse';
+      pannerNode.current.distanceModel = 'linear';
       pannerNode.current.refDistance = 1;
       pannerNode.current.maxDistance = 10000;
-      pannerNode.current.rolloffFactor = 0.2;
+      pannerNode.current.rolloffFactor = 0; // Disable built-in attenuation
 
       pannerNode.current.connect(gainNode.current);
       gainNode.current.connect(audioContext.current.destination);
@@ -24,7 +24,6 @@ export const useSpatialAudio = () => {
   }, []);
 
   const playAudio = (x: number, z: number, volume: number) => {
-    console.log(volume);
     if (!audioContext.current || !gainNode.current || !pannerNode.current) return;
 
     // Resume context if suspended (browser autoplay policy)
@@ -32,7 +31,14 @@ export const useSpatialAudio = () => {
       audioContext.current.resume();
     }
 
-    gainNode.current.gain.setValueAtTime(volume, audioContext.current.currentTime);
+    // Manual distance-based volume calculation
+    const distance = Math.sqrt(x * x + z * z);
+    // Custom curve: adjusted to make close-range differences more perceptible
+    // while maintaining a similar fall-off profile at longer distances.
+    const attenuation = Math.max(0, 1 - Math.pow(distance / 50, 0.75)); 
+    const finalVolume = volume * attenuation;
+
+    gainNode.current.gain.setValueAtTime(finalVolume, audioContext.current.currentTime);
     
     // Set panner position (x, y, z)
     pannerNode.current.positionX.value = x;
