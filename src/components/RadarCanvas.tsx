@@ -1,21 +1,31 @@
 import React, { useRef, useState, useEffect } from 'react';
 
 interface RadarCanvasProps {
-  onGuessSubmit: (x: number, z: number) => void;
+  onPendingGuess: (x: number, z: number) => void;
   gameState: 'INIT' | 'AUDIO_PLAYING' | 'GUESSING' | 'ROUND_REVEAL' | 'MATCH_OVER';
   targetCoordinates: { x: number; z: number };
+  finalGuess: { x: number; z: number } | null;
 }
 
-export const RadarCanvas: React.FC<RadarCanvasProps> = ({ onGuessSubmit }) => {
+export const RadarCanvas: React.FC<RadarCanvasProps> = ({ onPendingGuess, gameState, targetCoordinates, finalGuess }) => {
   const radarRef = useRef<HTMLDivElement>(null);
   const [markerPos, setMarkerPos] = useState({ x: 0, y: 0 }); // Relative to center
   const [isDragging, setIsDragging] = useState(false);
 
   const wasDraggingRef = useRef(false);
+  const markerPosRef = useRef({ x: 0, y: 0 });
 
-  const markerPosRef = useRef({ x: 0, y: 0 }); // Track latest position synchronously
+  // Use finalGuess if in ROUND_REVEAL, otherwise markerPos
+  const displayPos = gameState === 'ROUND_REVEAL' && finalGuess ? finalGuess : markerPos;
+
+  // Convert marker position from meters to pixels for rendering
+  // Note: Using z for vertical (Y) position
+  const renderX = (displayPos.x / 40) * (radarRef.current ? radarRef.current.offsetWidth / 2 : 200);
+  const renderY = (displayPos.z / 40) * (radarRef.current ? radarRef.current.offsetHeight / 2 : 200);
 
   const handleCanvasClick = (e: React.MouseEvent) => {
+    if (gameState !== 'GUESSING') return; // Only allow clicks in GUESSING state
+    
     if (wasDraggingRef.current) {
       wasDraggingRef.current = false;
       return;
@@ -29,18 +39,18 @@ export const RadarCanvas: React.FC<RadarCanvasProps> = ({ onGuessSubmit }) => {
     const metersPerPixel = maxMeters / (rect.width / 2);
 
     const dx = e.clientX - (rect.left + centerX);
-    const dy = e.clientY - (rect.top + centerY);
+    const dz = e.clientY - (rect.top + centerY);
 
     const newX = dx * metersPerPixel;
-    const newY = dy * metersPerPixel;
+    const newZ = dz * metersPerPixel;
 
-    markerPosRef.current = { x: newX, y: newY };
-    setMarkerPos({ x: newX, y: newY });
-    onGuessSubmit(newX, newY);
+    markerPosRef.current = { x: newX, z: newZ };
+    setMarkerPos({ x: newX, z: newZ });
+    onPendingGuess(newX, newZ);
   };
 
   const handleMouseMove = (e: MouseEvent) => {
-    if (!isDragging || !radarRef.current) return;
+    if (!isDragging || !radarRef.current || gameState !== 'GUESSING') return;
     wasDraggingRef.current = true;
     
     const rect = radarRef.current.getBoundingClientRect();
@@ -51,19 +61,19 @@ export const RadarCanvas: React.FC<RadarCanvasProps> = ({ onGuessSubmit }) => {
     const metersPerPixel = maxMeters / (rect.width / 2);
 
     const dx = e.clientX - (rect.left + centerX);
-    const dy = e.clientY - (rect.top + centerY);
-    const distancePixels = Math.sqrt(dx * dx + dy * dy);
+    const dz = e.clientY - (rect.top + centerY);
+    const distancePixels = Math.sqrt(dx * dx + dz * dz);
 
     let finalXPixels = dx;
-    let finalYPixels = dy;
+    let finalZPixels = dz;
 
     if (distancePixels > radiusPixels) {
-      const angle = Math.atan2(dy, dx);
+      const angle = Math.atan2(dz, dx);
       finalXPixels = radiusPixels * Math.cos(angle);
-      finalYPixels = radiusPixels * Math.sin(angle);
+      finalZPixels = radiusPixels * Math.sin(angle);
     }
 
-    const newPos = { x: finalXPixels * metersPerPixel, y: finalYPixels * metersPerPixel };
+    const newPos = { x: finalXPixels * metersPerPixel, z: finalZPixels * metersPerPixel };
     markerPosRef.current = newPos; // Update ref
     setMarkerPos(newPos);
   };
@@ -71,16 +81,12 @@ export const RadarCanvas: React.FC<RadarCanvasProps> = ({ onGuessSubmit }) => {
   const handleMouseUp = () => {
     if (isDragging) {
       setIsDragging(false);
-      onGuessSubmit(markerPosRef.current.x, markerPosRef.current.y); // Use ref
+      onPendingGuess(markerPosRef.current.x, markerPosRef.current.z); // Use ref
       setTimeout(() => {
         wasDraggingRef.current = false;
       }, 50);
     }
   };
-
-  // Convert marker position from meters to pixels for rendering
-  const renderX = (markerPos.x / 40) * (radarRef.current ? radarRef.current.offsetWidth / 2 : 200);
-  const renderY = (markerPos.y / 40) * (radarRef.current ? radarRef.current.offsetHeight / 2 : 200);
 
   useEffect(() => {
     if (isDragging) {
@@ -104,15 +110,28 @@ export const RadarCanvas: React.FC<RadarCanvasProps> = ({ onGuessSubmit }) => {
         <div className="absolute top-1/2 left-1/2 w-[10px] h-[10px] bg-white rounded-full translate-x-[-50%] translate-y-[-50%] z-20" />
         
         {/* Guess Marker */}
-        <div 
-          className="w-[12px] h-[12px] bg-green-500 rounded-full absolute z-30 cursor-grab shadow-md translate-x-[-50%] translate-y-[-50%]"
-          style={{ left: `calc(50% + ${renderX}px)`, top: `calc(50% + ${renderY}px)` }}
-          onMouseDown={(e) => {
-            e.stopPropagation(); // Prevent canvas click
-            setIsDragging(true);
-          }}
-        />
+        {(gameState === 'GUESSING' || gameState === 'ROUND_REVEAL') && (
+            <div 
+            className="w-[12px] h-[12px] bg-green-500 rounded-full absolute z-30 cursor-grab shadow-md translate-x-[-50%] translate-y-[-50%]"
+            style={{ left: `calc(50% + ${renderX}px)`, top: `calc(50% + ${renderY}px)` }}
+            onMouseDown={(e) => {
+                if (gameState !== 'GUESSING') return;
+                e.stopPropagation(); // Prevent canvas click
+                setIsDragging(true);
+            }}
+            />
+        )}
         
+        {/* Guess Label */}
+        {gameState === 'ROUND_REVEAL' && finalGuess && (
+          <div 
+            className="absolute z-40 bg-black/70 text-white text-[10px] px-1 py-0.5 rounded translate-x-[-50%] translate-y-[-250%]"
+            style={{ left: `calc(50% + ${renderX}px)`, top: `calc(50% + ${renderY}px)` }}
+          >
+            ({Math.round(finalGuess.x)}, {Math.round(finalGuess.z)})
+          </div>
+        )}
+
         {/* Rings */}
         <div className="absolute top-1/2 left-1/2 w-[100px] h-[100px] border border-dashed border-gray-500 rounded-full translate-x-[-50%] translate-y-[-50%]" />
         <div className="absolute text-[10px] text-gray-500 top-[calc(50%-55px)] left-1/2 translate-x-[-50%]">10m</div>

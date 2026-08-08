@@ -1,12 +1,25 @@
-# Project Progress - July 29, 2026
+# Project Progress
 
-## Summary of Work
-- Investigated and addressed issues with spatial audio attenuation in the game.
-- Transitioned from built-in Web Audio API `PannerNode` distance models to a custom, manual distance-based volume attenuation calculation.
-- Improved the balance between close-range volume and distance-based falloff to allow for better perceived variance in audio distance.
+## Summary of Work (July 29, 2026)
+- Investigated and addressed issues with spatial audio attenuation.
+- Transitioned to custom, manual distance-based volume attenuation calculation.
+- Improved the balance between close-range volume and distance-based falloff.
+
+## Summary of Work (July 31, 2026)
+- Refined the spatial audio attenuation formula to increase perceptibility at close range.
+- Added labeled distance rings to the RadarCanvas for improved visual feedback.
+- Implemented direct canvas clicking for placing and submitting guesses.
 
 ## Bugs Fixed
-- Resolved the issue where audio was perceived as too loud at close range and too quiet at far range, with insufficient variance between intermediate distances.
+- Resolved a double-submission bug during drag-and-drop operations.
+- Fixed coordinate stale state issues where guesses used pre-drag positions.
+
+## Summary of Work (August 6, 2026)
+- Implemented "Confirm Guess" button to transition from automatic guess submission to manual confirmation.
+- Refactored UI layout in `App.tsx` for the center panel to use a relative wrapper, preventing layout shifts when the "Confirm Guess" button appears.
+
+## Summary of Work (August 7, 2026)
+- Implemented scoring system based on Euclidean distance error with exponential decay for point calculation (max 10,000 points).
 
 ## Next Steps
-- Fine-tune the manual attenuation formula (currently `1 - distance / 50`) in `src/hooks/useSpatialAudio.ts` based on further playtesting to ensure optimal gameplay feedback.
+- Implement "Match Over" summary block with Average Error and Average Score.

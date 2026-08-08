@@ -7,9 +7,11 @@ import { useSpatialAudio } from './hooks/useSpatialAudio';
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<'INIT' | 'AUDIO_PLAYING' | 'GUESSING' | 'ROUND_REVEAL' | 'MATCH_OVER'>('INIT');
   const [volume, setVolume] = useState(0.014);
-  const [matchHistory, setMatchHistory] = useState<string[]>([]);
+  const [matchHistory, setMatchHistory] = useState<{ round: number; score: number; error: number; guess: { x: number; z: number } }[]>([]);
   const [currentRound, setCurrentRound] = useState(1);
   const [targetCoordinates, setTargetCoordinates] = useState({ x: 0, z: 0 });
+  const [pendingGuess, setPendingGuess] = useState<{ x: number; z: number } | null>(null);
+  const [finalGuess, setFinalGuess] = useState<{ x: number; z: number } | null>(null);
   const [manualX, setManualX] = useState('');
   const [manualZ, setManualZ] = useState('');
 
@@ -21,7 +23,7 @@ const App: React.FC = () => {
   };
 
   const generateTarget = () => {
-    const x = (Math.random() * 34 + 1) * (Math.random() > 0.5 ? 1 : -1); //random chance for negative
+    const x = (Math.random() * 34 + 1) * (Math.random() > 0.5 ? 1 : -1);
     const z = (Math.random() * 34 + 1) * (Math.random() > 0.5 ? 1 : -1);
     setTargetCoordinates({ x, z });
   };
@@ -40,16 +42,33 @@ const App: React.FC = () => {
   };
 
   const handleGuessSubmit = (x: number, z: number) => {
-    const newEntry = `Round ${currentRound}: Guessed (${Math.round(x)}, ${Math.round(z)})`;
-    setMatchHistory([...matchHistory, newEntry]);
+    const distance = Math.sqrt(Math.pow(targetCoordinates.x - x, 2) + Math.pow(targetCoordinates.z - z, 2));
+    const score = Math.max(0, Math.round(10000 * (1 - Math.pow(distance / 40, 2))));
     
+    setFinalGuess({ x, z });
+    setMatchHistory([...matchHistory, { round: currentRound, score, error: Math.round(distance), guess: { x, z } }]);
+    setGameState('ROUND_REVEAL');
+  };
+
+  const handleNextRound = () => {
     if (currentRound < 5) {
       setCurrentRound(currentRound + 1);
       generateTarget();
-      setGameState('ROUND_REVEAL');
-      setTimeout(() => setGameState('INIT'), 2000); // Wait 2s to show result then reset
+      setGameState('INIT');
+      setFinalGuess(null);
     } else {
       setGameState('MATCH_OVER');
+    }
+  };
+
+  const handlePendingGuess = (x: number, z: number) => {
+    setPendingGuess({ x, z });
+  };
+
+  const handleConfirmGuess = () => {
+    if (pendingGuess) {
+      handleGuessSubmit(pendingGuess.x, pendingGuess.z);
+      setPendingGuess(null); // Reset pending guess
     }
   };
 
@@ -70,12 +89,32 @@ const App: React.FC = () => {
       </div>
 
       {/* Center Panel */}
-      <div className="w-1/2 h-full p-4 flex justify-center items-center relative">
-        <RadarCanvas 
-          onGuessSubmit={handleGuessSubmit} 
-          gameState={gameState}
-          targetCoordinates={targetCoordinates}
-        />
+      <div className="w-1/2 h-full p-4 flex flex-col items-center justify-center">
+        <div className="relative flex flex-col items-center">
+          <RadarCanvas 
+            onPendingGuess={handlePendingGuess} 
+            gameState={gameState}
+            targetCoordinates={targetCoordinates}
+            finalGuess={finalGuess}
+          />
+          {gameState === 'GUESSING' && (
+            <button 
+              onClick={handleConfirmGuess}
+              disabled={!pendingGuess}
+              className="absolute -bottom-20 left-1/2 -translate-x-1/2 px-6 py-3 bg-blue-600 hover:bg-blue-700 active:scale-95 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg transition-all font-bold text-white shadow-lg whitespace-nowrap"
+            >
+              Confirm Guess
+            </button>
+          )}
+          {gameState === 'ROUND_REVEAL' && (
+            <button 
+              onClick={handleNextRound}
+              className="absolute -bottom-20 left-1/2 -translate-x-1/2 px-6 py-3 bg-blue-600 hover:bg-blue-700 active:scale-95 rounded-lg transition-all font-bold text-white shadow-lg whitespace-nowrap"
+            >
+              {currentRound < 5 ? 'Next Round' : 'See Final Score'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Right Panel */}
