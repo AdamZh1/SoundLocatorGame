@@ -1,59 +1,64 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
+import { audioFiles } from '../audioConfig';
 
 export const useSpatialAudio = () => {
   const audioContext = useRef<AudioContext | null>(null);
   const gainNode = useRef<GainNode | null>(null);
   const pannerNode = useRef<PannerNode | null>(null);
+  const buffers = useRef<Map<string, AudioBuffer>>(new Map());
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    // Initialize AudioContext only once
-    if (!audioContext.current) {
-      audioContext.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-      gainNode.current = audioContext.current.createGain();
-      pannerNode.current = audioContext.current.createPanner();
-      
-      pannerNode.current.panningModel = 'HRTF';
-      pannerNode.current.distanceModel = 'linear';
-      pannerNode.current.refDistance = 1;
-      pannerNode.current.maxDistance = 10000;
-      pannerNode.current.rolloffFactor = 0; // Disable built-in attenuation
+    const initAudio = async () => {
+      if (!audioContext.current) {
+        audioContext.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        gainNode.current = audioContext.current.createGain();
+        pannerNode.current = audioContext.current.createPanner();
+        
+        pannerNode.current.panningModel = 'HRTF';
+        pannerNode.current.distanceModel = 'linear';
+        pannerNode.current.refDistance = 1;
+        pannerNode.current.maxDistance = 10000;
+        pannerNode.current.rolloffFactor = 0; 
 
-      pannerNode.current.connect(gainNode.current);
-      gainNode.current.connect(audioContext.current.destination);
-    }
+        pannerNode.current.connect(gainNode.current);
+        gainNode.current.connect(audioContext.current.destination);
+      }
+
+      for (const file of audioFiles) {
+        const response = await fetch(`/${file}`);
+        if (!response.ok) throw new Error(`Failed to load ${file}`);
+        const arrayBuffer = await response.arrayBuffer();
+        const audioBuffer = await audioContext.current.decodeAudioData(arrayBuffer);
+        buffers.current.set(file, audioBuffer);
+      }
+      setLoaded(true);
+    };
+
+    initAudio();
   }, []);
 
-  const playAudio = (x: number, z: number, volume: number) => {
-    if (!audioContext.current || !gainNode.current || !pannerNode.current) return;
+  const playAudio = (x: number, z: number, volume: number, soundName: string) => {
+    if (!audioContext.current || !gainNode.current || !pannerNode.current || !buffers.current.has(soundName)) return;
 
-    // Resume context if suspended (browser autoplay policy)
     if (audioContext.current.state === 'suspended') {
       audioContext.current.resume();
     }
 
-    // Manual distance-based volume calculation
     const distance = Math.sqrt(x * x + z * z);
-    // Custom curve: adjusted to make close-range differences more perceptible
-    // while maintaining a similar fall-off profile at longer distances.
     const attenuation = Math.max(0, 1 - Math.pow(distance / 50, 0.75)); 
     const finalVolume = volume * attenuation;
 
     gainNode.current.gain.setValueAtTime(finalVolume, audioContext.current.currentTime);
     
-    // Set panner position (x, y, z)
     pannerNode.current.positionX.value = x;
     pannerNode.current.positionY.value = 0;
     pannerNode.current.positionZ.value = z;
 
-    // Create a short beep sound
-    const oscillator = audioContext.current.createOscillator();
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(440, audioContext.current.currentTime);
-    
-    oscillator.connect(pannerNode.current);
-    
-    oscillator.start();
-    oscillator.stop(audioContext.current.currentTime + 1); // 1 second
+    const source = audioContext.current.createBufferSource();
+    source.buffer = buffers.current.get(soundName)!;
+    source.connect(pannerNode.current);
+    source.start();
   };
 
   const setVolume = (volume: number) => {
@@ -62,5 +67,5 @@ export const useSpatialAudio = () => {
     }
   };
 
-  return { playAudio, setVolume };
+  return { playAudio, setVolume, soundFiles: audioFiles, loaded };
 };

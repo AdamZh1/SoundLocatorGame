@@ -23,6 +23,9 @@ export const RadarCanvas: React.FC<RadarCanvasProps> = ({ onPendingGuess, gameSt
   const renderX = (displayPos.x / 40) * (radarRef.current ? radarRef.current.offsetWidth / 2 : 200);
   const renderY = (displayPos.z / 40) * (radarRef.current ? radarRef.current.offsetHeight / 2 : 200);
 
+  const targetRenderX = (targetCoordinates.x / 40) * (radarRef.current ? radarRef.current.offsetWidth / 2 : 200);
+  const targetRenderY = (targetCoordinates.z / 40) * (radarRef.current ? radarRef.current.offsetHeight / 2 : 200);
+
   const handleCanvasClick = (e: React.MouseEvent) => {
     if (gameState !== 'GUESSING') return; // Only allow clicks in GUESSING state
     
@@ -130,6 +133,23 @@ export const RadarCanvas: React.FC<RadarCanvasProps> = ({ onPendingGuess, gameSt
           >
             ({Math.round(finalGuess.x)}, {Math.round(finalGuess.z)})
           </div>
+        )}
+
+        {/* Actual Location Blue Dot */}
+        {gameState === 'ROUND_REVEAL' && (
+          <>
+            <div 
+              className="w-[12px] h-[12px] bg-blue-500 rounded-full absolute z-30 translate-x-[-50%] translate-y-[-50%]"
+              style={{ left: `calc(50% + ${targetRenderX}px)`, top: `calc(50% + ${targetRenderY}px)` }}
+            />
+            {/* Actual Location Label */}
+            <div 
+              className="absolute z-40 bg-black/70 text-white text-[10px] px-1 py-0.5 rounded translate-x-[-50%] translate-y-[150%]"
+              style={{ left: `calc(50% + ${targetRenderX}px)`, top: `calc(50% + ${targetRenderY}px)` }}
+            >
+              ({Math.round(targetCoordinates.x)}, {Math.round(targetCoordinates.z)})
+            </div>
+          </>
         )}
 
         {/* Rings */}

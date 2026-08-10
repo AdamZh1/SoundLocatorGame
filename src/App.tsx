@@ -6,7 +6,7 @@ import { useSpatialAudio } from './hooks/useSpatialAudio';
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<'INIT' | 'AUDIO_PLAYING' | 'GUESSING' | 'ROUND_REVEAL' | 'MATCH_OVER'>('INIT');
-  const [volume, setVolume] = useState(0.014);
+  const [volume, setVolume] = useState(0.25);
   const [matchHistory, setMatchHistory] = useState<{ round: number; score: number; error: number; guess: { x: number; z: number } }[]>([]);
   const [currentRound, setCurrentRound] = useState(1);
   const [targetCoordinates, setTargetCoordinates] = useState({ x: 0, z: 0 });
@@ -14,8 +14,9 @@ const App: React.FC = () => {
   const [finalGuess, setFinalGuess] = useState<{ x: number; z: number } | null>(null);
   const [manualX, setManualX] = useState('');
   const [manualZ, setManualZ] = useState('');
+  const [selectedSound, setSelectedSound] = useState('');
 
-  const { playAudio, setVolume: setAudioVolume } = useSpatialAudio();
+  const { playAudio, setVolume: setAudioVolume, soundFiles, loaded } = useSpatialAudio();
 
   const handleVolumeChange = (newVolume: number) => {
     setVolume(newVolume);
@@ -23,8 +24,11 @@ const App: React.FC = () => {
   };
 
   const generateTarget = () => {
-    const x = (Math.random() * 34 + 1) * (Math.random() > 0.5 ? 1 : -1);
-    const z = (Math.random() * 34 + 1) * (Math.random() > 0.5 ? 1 : -1);
+    const maxRadius = 35;
+    const theta = Math.random() * 2 * Math.PI;
+    const r = Math.sqrt(Math.random()) * maxRadius;
+    const x = r * Math.cos(theta);
+    const z = r * Math.sin(theta);
     setTargetCoordinates({ x, z });
   };
 
@@ -36,8 +40,12 @@ const App: React.FC = () => {
     setGameState('AUDIO_PLAYING');
     const x = manualX !== '' ? parseFloat(manualX) : targetCoordinates.x;
     const z = manualZ !== '' ? parseFloat(manualZ) : targetCoordinates.z;
-    console.log(x, z);
-    playAudio(x, z, volume);
+    
+    // Select sound: use dropdown if set, otherwise pick random
+    const soundToPlay = selectedSound !== '' ? selectedSound : soundFiles[Math.floor(Math.random() * soundFiles.length)];
+    
+    console.log(`Playing ${soundToPlay} at (${x}, ${z})`);
+    playAudio(x, z, volume, soundToPlay);
     setTimeout(() => setGameState('GUESSING'), 1000);
   };
 
@@ -80,11 +88,14 @@ const App: React.FC = () => {
           onPlay={handlePlay} 
           volume={volume} 
           onVolumeChange={handleVolumeChange}
-          disabled={gameState !== 'INIT'}
+          disabled={gameState !== 'INIT' || !loaded}
           manualX={manualX}
           manualZ={manualZ}
           onManualXChange={setManualX}
           onManualZChange={setManualZ}
+          selectedSound={selectedSound}
+          onSelectedSoundChange={setSelectedSound}
+          soundFiles={soundFiles}
         />
       </div>
 

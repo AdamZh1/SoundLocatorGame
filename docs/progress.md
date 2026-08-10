@@ -20,6 +20,14 @@
 
 ## Summary of Work (August 7, 2026)
 - Implemented scoring system based on Euclidean distance error with exponential decay for point calculation (max 10,000 points).
+- Added total score counter (out of 50,000) to the match history panel.
+- Replaced auto-progression with a manual "Next Round" / "See Final Score" button.
+- Visualized the target location on the radar with a blue dot and coordinate label.
+- Constrained target generation to be within the radar's circular bounds.
+
+## Bugs Fixed
+- Fixed coordinate system inconsistencies (mixing X/Y vs X/Z) causing NaN labels and incorrect marker positioning on the canvas.
+- Fixed target generation logic that allowed sound sources to appear outside the radar boundaries.
 
 ## Next Steps
-- Implement "Match Over" summary block with Average Error and Average Score.
+- (Completed) Implement functionality to change the game's sound effect.
