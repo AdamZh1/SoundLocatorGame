@@ -5,6 +5,7 @@ export const useSpatialAudio = () => {
   const audioContext = useRef<AudioContext | null>(null);
   const gainNode = useRef<GainNode | null>(null);
   const pannerNode = useRef<PannerNode | null>(null);
+  const filterNode = useRef<BiquadFilterNode | null>(null);
   const buffers = useRef<Map<string, AudioBuffer>>(new Map());
   const [loaded, setLoaded] = useState(false);
 
@@ -32,6 +33,10 @@ export const useSpatialAudio = () => {
       audioContext.current = new (window.AudioContext || (window as any).webkitAudioContext)();
       gainNode.current = audioContext.current.createGain();
       pannerNode.current = audioContext.current.createPanner();
+      filterNode.current = audioContext.current.createBiquadFilter();
+      
+      filterNode.current.type = 'highshelf';
+      filterNode.current.frequency.value = 5500;
       
       pannerNode.current.panningModel = 'HRTF';
       pannerNode.current.distanceModel = 'linear';
@@ -39,6 +44,7 @@ export const useSpatialAudio = () => {
       pannerNode.current.maxDistance = 10000;
       pannerNode.current.rolloffFactor = 0; 
 
+      filterNode.current.connect(pannerNode.current);
       pannerNode.current.connect(gainNode.current);
       gainNode.current.connect(audioContext.current.destination);
     }
@@ -49,7 +55,7 @@ export const useSpatialAudio = () => {
 
   const playAudio = async (x: number, z: number, volume: number, soundName: string) => {
     await ensureContextReady();
-    if (!audioContext.current || !gainNode.current || !pannerNode.current || !buffers.current.has(soundName)) return;
+    if (!audioContext.current || !gainNode.current || !pannerNode.current || !filterNode.current || !buffers.current.has(soundName)) return;
 
     const distance = Math.sqrt(x * x + z * z);
     const attenuation = Math.max(0, 1 - Math.pow(distance / 50, 0.75)); 
@@ -57,13 +63,17 @@ export const useSpatialAudio = () => {
 
     gainNode.current.gain.setValueAtTime(finalVolume, audioContext.current.currentTime);
     
+    // Pinna Filter logic - linear ramp for backward sounds
+    const MAX_DISTANCE = 35;
+    filterNode.current.gain.value = z > 0 ? -5 * Math.min(z / MAX_DISTANCE, 1) : 0;
+    
     pannerNode.current.positionX.value = x;
     pannerNode.current.positionY.value = 0;
     pannerNode.current.positionZ.value = z;
 
     const source = audioContext.current.createBufferSource();
     source.buffer = buffers.current.get(soundName)!;
-    source.connect(pannerNode.current);
+    source.connect(filterNode.current);
     source.start();
   };
 
