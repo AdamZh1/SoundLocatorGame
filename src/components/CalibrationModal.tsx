@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { audioFiles } from '../audioConfig';
+import { MiniRadar } from './MiniRadar';
 
 interface CalibrationModalProps {
   onClose: () => void;
@@ -15,97 +16,22 @@ interface CalibrationModalProps {
 export const CalibrationModal: React.FC<CalibrationModalProps> = ({ 
   onClose, playAudio, volume, onVolumeChange, selectedSound, onSelectedSoundChange, soundFiles, loaded 
 }) => {
-  const [selectedDistance, setSelectedDistance] = useState(15);
-  const [selectedDirection, setSelectedDirection] = useState<'forward' | 'backward' | 'left' | 'right'>('forward');
-  const [manualX, setManualX] = useState<string>('');
-  const [manualZ, setManualZ] = useState<string>('');
-  const [useManual, setUseManual] = useState<boolean>(false);
+  const [targetPos, setTargetPos] = useState({ x: 0, z: 0 });
   const [isPlaying, setIsPlaying] = useState(false);
-  const distances = [5, 15, 25, 35];
   
   const handlePlay = async () => {
-    let x = 0;
-    let z = 0;
-    if (useManual) {
-      x = parseFloat(manualX) || 0;
-      z = parseFloat(manualZ) || 0;
-    } else {
-      switch (selectedDirection) {
-        case 'forward': z = -selectedDistance; break;
-        case 'backward': z = selectedDistance; break;
-        case 'left': x = -selectedDistance; break;
-        case 'right': x = selectedDistance; break;
-      }
-    }
-    
     const soundToPlay = selectedSound !== '' ? selectedSound : audioFiles[0];
     setIsPlaying(true);
-    await playAudio(x, z, volume, soundToPlay);
+    await playAudio(targetPos.x, targetPos.z, volume, soundToPlay);
     setIsPlaying(false);
   };
 
   return (
     <div className="fixed inset-0 bg-gray-900/80 z-50 flex justify-center items-center">
-      <div className="bg-gray-800 p-6 rounded-xl border border-gray-600 w-[500px] max-h-[90vh] overflow-y-auto">
+      <div className="bg-gray-800 p-6 rounded-xl border border-gray-600 w-[500px]">
         <h2 className="text-xl font-bold mb-4">Calibration</h2>
         
-        <div className="mb-6">
-          <label className="flex items-center gap-2 mb-2">
-            <input 
-              type="checkbox" 
-              checked={useManual} 
-              onChange={(e) => setUseManual(e.target.checked)} 
-            />
-            <h3 className="text-sm font-semibold">Manual Coordinates</h3>
-          </label>
-          
-          {useManual ? (
-            <div className="flex gap-4">
-              <input 
-                type="number" 
-                placeholder="X" 
-                value={manualX} 
-                onChange={(e) => setManualX(e.target.value)}
-                className="bg-gray-700 p-2 rounded text-sm text-white w-full"
-              />
-              <input 
-                type="number" 
-                placeholder="Z" 
-                value={manualZ} 
-                onChange={(e) => setManualZ(e.target.value)}
-                className="bg-gray-700 p-2 rounded text-sm text-white w-full"
-              />
-            </div>
-          ) : (
-            <>
-              <h3 className="text-sm font-semibold mb-2">Distance ({selectedDistance}m)</h3>
-              <div className="flex gap-2 mb-4">
-                {distances.map(d => (
-                  <button 
-                    key={d} 
-                    onClick={() => setSelectedDistance(d)}
-                    className={`px-3 py-1 rounded ${selectedDistance === d ? 'bg-blue-600' : 'bg-gray-700'}`}
-                  >
-                    {d}m
-                  </button>
-                ))}
-              </div>
-
-              <h3 className="text-sm font-semibold mb-2">Direction</h3>
-              <div className="flex gap-2">
-                {(['forward', 'backward', 'left', 'right'] as const).map(dir => (
-                  <button 
-                    key={dir} 
-                    onClick={() => setSelectedDirection(dir)}
-                    className={`capitalize px-3 py-1 rounded ${selectedDirection === dir ? 'bg-blue-600' : 'bg-gray-700'}`}
-                  >
-                    {dir}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+        <MiniRadar onSelectCoordinate={(x, z) => setTargetPos({ x, z })} />
 
         <div className="mb-6 p-4 border border-gray-600 rounded-xl bg-gray-900">
           <h3 className="text-sm font-semibold mb-2">Test Sound</h3>
@@ -139,7 +65,7 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
           disabled={!loaded || isPlaying}
           className="w-full bg-blue-600 text-white py-2 rounded mb-2 font-bold hover:bg-blue-700 transition disabled:bg-gray-500"
         >
-          {isPlaying ? 'Playing...' : !loaded ? 'Loading...' : 'Play Audio'}
+          {isPlaying ? 'Playing...' : !loaded ? 'Loading...' : `Play Audio at (${Math.round(targetPos.x)}, ${Math.round(targetPos.z)})`}
         </button>
 
         <button onClick={onClose} className="w-full bg-red-600 text-white py-2 rounded">Close</button>
@@ -147,3 +73,4 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
     </div>
   );
 };
+
