@@ -29,5 +29,24 @@
 - Fixed coordinate system inconsistencies (mixing X/Y vs X/Z) causing NaN labels and incorrect marker positioning on the canvas.
 - Fixed target generation logic that allowed sound sources to appear outside the radar boundaries.
 
+## Summary of Work (August 10, 2026)
+- Implemented switchable sound effect support using `AudioBufferSourceNode`.
+- Refactored `useSpatialAudio` to support pre-loading multiple audio assets from `public/` using `src/audioConfig.ts`.
+- Added a "Calibration" mode (modal) for testing spatial audio behavior (distances/directions) and volume adjustment.
+- Connected the calibration volume slider to the main app volume state.
+
+## Bugs / Known Issues
+- Calibration modal playback is inconsistent (audio sometimes fails to play).
+- Calibration volume slider is not perfectly synced with the main side-panel slider.
+
+## Summary of Work (August 11, 2026)
+- Refactored `useSpatialAudio` to decouple audio buffer loading from `AudioContext` initialization.
+- Fixed inconsistent calibration audio playback by enforcing lazy initialization.
+- Synchronized volume slider ranges and steps between the main `AudioController` and the `CalibrationModal`.
+
+## Bugs Fixed
+- Resolved calibration audio failure to play on initial interaction.
+- Fixed volume slider range/synchronization discrepancy between the main panel and calibration modal.
+
 ## Next Steps
-- (Completed) Implement functionality to change the game's sound effect.
+- Implement a Pinna Filter to solve front-back acoustic confusion in the game.

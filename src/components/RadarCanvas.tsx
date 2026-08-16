@@ -9,11 +9,11 @@ interface RadarCanvasProps {
 
 export const RadarCanvas: React.FC<RadarCanvasProps> = ({ onPendingGuess, gameState, targetCoordinates, finalGuess }) => {
   const radarRef = useRef<HTMLDivElement>(null);
-  const [markerPos, setMarkerPos] = useState({ x: 0, y: 0 }); // Relative to center
+  const [markerPos, setMarkerPos] = useState({ x: 0, z: 0 }); // Relative to center
   const [isDragging, setIsDragging] = useState(false);
 
   const wasDraggingRef = useRef(false);
-  const markerPosRef = useRef({ x: 0, y: 0 });
+  const markerPosRef = useRef({ x: 0, z: 0 });
 
   // Use finalGuess if in ROUND_REVEAL, otherwise markerPos
   const displayPos = gameState === 'ROUND_REVEAL' && finalGuess ? finalGuess : markerPos;

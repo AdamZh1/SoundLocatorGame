@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { AudioController } from './components/AudioController';
 import { RadarCanvas } from './components/RadarCanvas';
 import { MatchHistory } from './components/MatchHistory';
+import { CalibrationModal } from './components/CalibrationModal';
 import { useSpatialAudio } from './hooks/useSpatialAudio';
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<'INIT' | 'AUDIO_PLAYING' | 'GUESSING' | 'ROUND_REVEAL' | 'MATCH_OVER'>('INIT');
+  const [isCalibrationOpen, setIsCalibrationOpen] = useState(false);
   const [volume, setVolume] = useState(0.25);
   const [matchHistory, setMatchHistory] = useState<{ round: number; score: number; error: number; guess: { x: number; z: number } }[]>([]);
   const [currentRound, setCurrentRound] = useState(1);
@@ -36,7 +38,7 @@ const App: React.FC = () => {
     generateTarget();
   }, []);
 
-  const handlePlay = () => {
+  const handlePlay = async () => {
     setGameState('AUDIO_PLAYING');
     const x = manualX !== '' ? parseFloat(manualX) : targetCoordinates.x;
     const z = manualZ !== '' ? parseFloat(manualZ) : targetCoordinates.z;
@@ -45,7 +47,7 @@ const App: React.FC = () => {
     const soundToPlay = selectedSound !== '' ? selectedSound : soundFiles[Math.floor(Math.random() * soundFiles.length)];
     
     console.log(`Playing ${soundToPlay} at (${x}, ${z})`);
-    playAudio(x, z, volume, soundToPlay);
+    await playAudio(x, z, volume, soundToPlay);
     setTimeout(() => setGameState('GUESSING'), 1000);
   };
 
@@ -86,6 +88,7 @@ const App: React.FC = () => {
       <div className="w-1/4 h-full border-r border-gray-700 bg-gray-900">
         <AudioController 
           onPlay={handlePlay} 
+          onOpenCalibration={() => setIsCalibrationOpen(true)}
           volume={volume} 
           onVolumeChange={handleVolumeChange}
           disabled={gameState !== 'INIT' || !loaded}
@@ -98,6 +101,19 @@ const App: React.FC = () => {
           soundFiles={soundFiles}
         />
       </div>
+
+      {isCalibrationOpen && (
+        <CalibrationModal 
+          onClose={() => setIsCalibrationOpen(false)}
+          playAudio={playAudio}
+          volume={volume}
+          onVolumeChange={handleVolumeChange}
+          selectedSound={selectedSound}
+          onSelectedSoundChange={setSelectedSound}
+          soundFiles={soundFiles}
+          loaded={loaded}
+        />
+      )}
 
       {/* Center Panel */}
       <div className="w-1/2 h-full p-4 flex flex-col items-center justify-center">

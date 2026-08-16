@@ -2,6 +2,7 @@ import React from 'react';
 
 interface AudioControllerProps {
   onPlay: () => void;
+  onOpenCalibration: () => void;
   volume: number;
   onVolumeChange: (vol: number) => void;
   disabled?: boolean;
@@ -15,7 +16,7 @@ interface AudioControllerProps {
 }
 
 export const AudioController: React.FC<AudioControllerProps> = ({ 
-  onPlay, volume, onVolumeChange, disabled, 
+  onPlay, onOpenCalibration, volume, onVolumeChange, disabled, 
   manualX, manualZ, onManualXChange, onManualZChange,
   selectedSound, onSelectedSoundChange, soundFiles
 }) => {
@@ -28,6 +29,13 @@ export const AudioController: React.FC<AudioControllerProps> = ({
         className="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-blue-700 transition active:translate-y-[2px] disabled:bg-gray-600 disabled:cursor-not-allowed"
       >
         Play Audio
+      </button>
+
+      <button 
+        onClick={onOpenCalibration}
+        className="bg-purple-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-purple-700 transition active:translate-y-[2px]"
+      >
+        Calibrate Audio
       </button>
 
       <div className="p-4 border border-gray-600 rounded-xl bg-gray-800">
