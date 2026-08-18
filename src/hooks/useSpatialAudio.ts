@@ -6,6 +6,7 @@ export const useSpatialAudio = () => {
   const gainNode = useRef<GainNode | null>(null);
   const pannerNode = useRef<PannerNode | null>(null);
   const filterNode = useRef<BiquadFilterNode | null>(null);
+  const isGraphFullyConnected = useRef(false);
   const buffers = useRef<Map<string, AudioBuffer>>(new Map());
   const [loaded, setLoaded] = useState(false);
 
@@ -44,8 +45,8 @@ export const useSpatialAudio = () => {
       pannerNode.current.maxDistance = 10000;
       pannerNode.current.rolloffFactor = 0; 
 
+      // Connect filter -> panner, but Panner -> Gain will be deferred until first play
       filterNode.current.connect(pannerNode.current);
-      pannerNode.current.connect(gainNode.current);
       gainNode.current.connect(audioContext.current.destination);
     }
     if (audioContext.current.state === 'suspended') {
@@ -67,9 +68,18 @@ export const useSpatialAudio = () => {
     const MAX_DISTANCE = 35;
     filterNode.current.gain.value = z > 0 ? -5 * Math.min(z / MAX_DISTANCE, 1) : 0;
     
-    pannerNode.current.positionX.value = x;
-    pannerNode.current.positionY.value = 0;
-    pannerNode.current.positionZ.value = z;
+    // Explicitly schedule position updates to prevent race conditions
+    const now = audioContext.current.currentTime;
+    pannerNode.current.positionX.setValueAtTime(x, now);
+    pannerNode.current.positionY.setValueAtTime(0, now);
+    pannerNode.current.positionZ.setValueAtTime(z, now);
+    
+    // Connect panner -> gain ONLY when playing for the first time
+    // This ensures position is set BEFORE the audio reaches the destination
+    if (!isGraphFullyConnected.current && pannerNode.current && gainNode.current) {
+        pannerNode.current.connect(gainNode.current);
+        isGraphFullyConnected.current = true;
+    }
 
     const source = audioContext.current.createBufferSource();
     source.buffer = buffers.current.get(soundName)!;

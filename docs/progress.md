@@ -48,5 +48,17 @@
 - Resolved calibration audio failure to play on initial interaction.
 - Fixed volume slider range/synchronization discrepancy between the main panel and calibration modal.
 
+## Summary of Work (August 16, 2026)
+- Implemented a Pinna Filter in `useSpatialAudio.ts` using a `BiquadFilterNode` (`highshelf`) to solve front-back acoustic confusion, utilizing a smooth linear ramp for gain reduction on sounds behind the player.
+- Enhanced `CalibrationModal` by adding an interactive mini-radar canvas with concentric rings (10m, 20m, 30m) and a mode-switching UI, allowing users to select target coordinates visually or via buttons.
+
+## Bugs Fixed
+- Corrected inverted Pinna Filter directionality (front-back confusion).
+- Adjusted Pinna Filter intensity for a more natural sound profile.
+- Resolved UI state regression in `CalibrationModal` caused by experimental coordinate input features.
+
+## Bugs / Known Issues
+- Intermittent initial audio glitch: sounds briefly play at the origin `(0, 0, 0)` on the very first play, specifically in the calibration mode.
+
 ## Next Steps
-- Implement a Pinna Filter to solve front-back acoustic confusion in the game.
+- Investigate and resolve the intermittent initial audio glitch (sounds playing at origin on first play).
