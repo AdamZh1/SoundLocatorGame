@@ -62,3 +62,13 @@
 
 ## Next Steps
 - Investigate and resolve the intermittent initial audio glitch (sounds playing at origin on first play).
+
+## Summary of Work (August 21, 2026 - Continued)
+- Verified that the new "Home Screen" entry point successfully resolves the intermittent initial audio origin-glitch by ensuring `AudioContext` is fully initialized and resumed via user interaction before game start.
+
+## Bugs Fixed
+- Resolved the intermittent initial audio glitch (sounds playing at `(0, 0, 0)` on the first play).
+
+## Next Steps
+- Implement quality-of-life improvements.
+- Enhance visual aesthetics using Tailwind CSS.

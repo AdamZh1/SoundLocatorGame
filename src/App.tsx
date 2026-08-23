@@ -3,9 +3,12 @@ import { AudioController } from './components/AudioController';
 import { RadarCanvas } from './components/RadarCanvas';
 import { MatchHistory } from './components/MatchHistory';
 import { CalibrationModal } from './components/CalibrationModal';
+import HomeScreen from './components/HomeScreen';
+import EndScreen from './components/EndScreen';
 import { useSpatialAudio } from './hooks/useSpatialAudio';
 
 const App: React.FC = () => {
+  const [appStage, setAppStage] = useState<'HOME' | 'GAME'>('HOME');
   const [gameState, setGameState] = useState<'INIT' | 'AUDIO_PLAYING' | 'GUESSING' | 'ROUND_REVEAL' | 'MATCH_OVER'>('INIT');
   const [isCalibrationOpen, setIsCalibrationOpen] = useState(false);
   const [volume, setVolume] = useState(0.25);
@@ -18,7 +21,12 @@ const App: React.FC = () => {
   const [manualZ, setManualZ] = useState('');
   const [selectedSound, setSelectedSound] = useState('');
 
-  const { playAudio, setVolume: setAudioVolume, soundFiles, loaded } = useSpatialAudio();
+  const { playAudio, setVolume: setAudioVolume, initAudio, soundFiles, loaded } = useSpatialAudio();
+
+  const handleStartGame = async () => {
+    await initAudio();
+    setAppStage('GAME');
+  };
 
   const handleVolumeChange = (newVolume: number) => {
     setVolume(newVolume);
@@ -49,6 +57,13 @@ const App: React.FC = () => {
     console.log(`Playing ${soundToPlay} at (${x}, ${z})`);
     await playAudio(x, z, volume, soundToPlay);
     setTimeout(() => setGameState('GUESSING'), 1000);
+  };
+
+  const handlePlayAgain = () => {
+    setMatchHistory([]);
+    setCurrentRound(1);
+    setGameState('INIT');
+    generateTarget();
   };
 
   const handleGuessSubmit = (x: number, z: number) => {
@@ -83,75 +98,83 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-900 text-white w-full">
-      {/* Left Panel */}
-      <div className="w-1/4 h-full border-r border-gray-700 bg-gray-900">
-        <AudioController 
-          onPlay={handlePlay} 
-          onOpenCalibration={() => setIsCalibrationOpen(true)}
-          volume={volume} 
-          onVolumeChange={handleVolumeChange}
-          disabled={gameState !== 'INIT' || !loaded}
-          manualX={manualX}
-          manualZ={manualZ}
-          onManualXChange={setManualX}
-          onManualZChange={setManualZ}
-          selectedSound={selectedSound}
-          onSelectedSoundChange={setSelectedSound}
-          soundFiles={soundFiles}
-        />
-      </div>
-
-      {isCalibrationOpen && (
-        <CalibrationModal 
-          onClose={() => setIsCalibrationOpen(false)}
-          playAudio={playAudio}
-          volume={volume}
-          onVolumeChange={handleVolumeChange}
-          selectedSound={selectedSound}
-          onSelectedSoundChange={setSelectedSound}
-          soundFiles={soundFiles}
-          loaded={loaded}
-        />
-      )}
-
-      {/* Center Panel */}
-      <div className="w-1/2 h-full p-4 flex flex-col items-center justify-center">
-        <div className="relative flex flex-col items-center">
-          <RadarCanvas 
-            onPendingGuess={handlePendingGuess} 
-            gameState={gameState}
-            targetCoordinates={targetCoordinates}
-            finalGuess={finalGuess}
+    appStage === 'HOME' ? (
+      <HomeScreen onStartGame={handleStartGame} />
+    ) : (
+      <div className="flex h-screen bg-gray-900 text-white w-full">
+        {/* Left Panel */}
+        <div className="w-1/4 h-full border-r border-gray-700 bg-gray-900">
+          <AudioController 
+            onPlay={handlePlay} 
+            onOpenCalibration={() => setIsCalibrationOpen(true)}
+            volume={volume} 
+            onVolumeChange={handleVolumeChange}
+            disabled={gameState !== 'INIT' || !loaded}
+            manualX={manualX}
+            manualZ={manualZ}
+            onManualXChange={setManualX}
+            onManualZChange={setManualZ}
+            selectedSound={selectedSound}
+            onSelectedSoundChange={setSelectedSound}
+            soundFiles={soundFiles}
           />
-          {gameState === 'GUESSING' && (
-            <button 
-              onClick={handleConfirmGuess}
-              disabled={!pendingGuess}
-              className="absolute -bottom-20 left-1/2 -translate-x-1/2 px-6 py-3 bg-blue-600 hover:bg-blue-700 active:scale-95 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg transition-all font-bold text-white shadow-lg whitespace-nowrap"
-            >
-              Confirm Guess
-            </button>
-          )}
-          {gameState === 'ROUND_REVEAL' && (
-            <button 
-              onClick={handleNextRound}
-              className="absolute -bottom-20 left-1/2 -translate-x-1/2 px-6 py-3 bg-blue-600 hover:bg-blue-700 active:scale-95 rounded-lg transition-all font-bold text-white shadow-lg whitespace-nowrap"
-            >
-              {currentRound < 5 ? 'Next Round' : 'See Final Score'}
-            </button>
-          )}
+        </div>
+
+        {isCalibrationOpen && (
+          <CalibrationModal 
+            onClose={() => setIsCalibrationOpen(false)}
+            playAudio={playAudio}
+            volume={volume}
+            onVolumeChange={handleVolumeChange}
+            selectedSound={selectedSound}
+            onSelectedSoundChange={setSelectedSound}
+            soundFiles={soundFiles}
+            loaded={loaded}
+          />
+        )}
+
+        {gameState === 'MATCH_OVER' && (
+          <EndScreen history={matchHistory} onPlayAgain={handlePlayAgain} />
+        )}
+
+        {/* Center Panel */}
+        <div className="w-1/2 h-full p-4 flex flex-col items-center justify-center">
+          <div className="relative flex flex-col items-center">
+            <RadarCanvas 
+              onPendingGuess={handlePendingGuess} 
+              gameState={gameState}
+              targetCoordinates={targetCoordinates}
+              finalGuess={finalGuess}
+            />
+            {gameState === 'GUESSING' && (
+              <button 
+                onClick={handleConfirmGuess}
+                disabled={!pendingGuess}
+                className="absolute -bottom-20 left-1/2 -translate-x-1/2 px-6 py-3 bg-blue-600 hover:bg-blue-700 active:scale-95 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg transition-all font-bold text-white shadow-lg whitespace-nowrap"
+              >
+                Confirm Guess
+              </button>
+            )}
+            {gameState === 'ROUND_REVEAL' && (
+              <button 
+                onClick={handleNextRound}
+                className="absolute -bottom-20 left-1/2 -translate-x-1/2 px-6 py-3 bg-blue-600 hover:bg-blue-700 active:scale-95 rounded-lg transition-all font-bold text-white shadow-lg whitespace-nowrap"
+              >
+                {currentRound < 5 ? 'Next Round' : 'See Final Score'}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Right Panel */}
+        <div className="w-1/4 h-full border-l border-gray-700 bg-gray-900">
+          <MatchHistory 
+            history={matchHistory} 
+            currentRound={currentRound} 
+          />
         </div>
       </div>
-
-      {/* Right Panel */}
-      <div className="w-1/4 h-full border-l border-gray-700 bg-gray-900">
-        <MatchHistory 
-          history={matchHistory} 
-          currentRound={currentRound} 
-        />
-      </div>
-    </div>
+    )
   );
 };
 

@@ -93,5 +93,5 @@ export const useSpatialAudio = () => {
     }
   };
 
-  return { playAudio, setVolume, soundFiles: audioFiles, loaded };
+  return { playAudio, setVolume, initAudio: ensureContextReady, soundFiles: audioFiles, loaded };
 };
