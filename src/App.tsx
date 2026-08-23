@@ -12,7 +12,7 @@ const App: React.FC = () => {
   const [gameState, setGameState] = useState<'INIT' | 'AUDIO_PLAYING' | 'GUESSING' | 'ROUND_REVEAL' | 'MATCH_OVER'>('INIT');
   const [isCalibrationOpen, setIsCalibrationOpen] = useState(false);
   const [volume, setVolume] = useState(0.25);
-  const [matchHistory, setMatchHistory] = useState<{ round: number; score: number; error: number; guess: { x: number; z: number } }[]>([]);
+  const [matchHistory, setMatchHistory] = useState<{ round: number; score: number; error: number; guess: { x: number; z: number }; target: { x: number; z: number } }[]>([]);
   const [currentRound, setCurrentRound] = useState(1);
   const [targetCoordinates, setTargetCoordinates] = useState({ x: 0, z: 0 });
   const [pendingGuess, setPendingGuess] = useState<{ x: number; z: number } | null>(null);
@@ -71,7 +71,7 @@ const App: React.FC = () => {
     const score = Math.max(0, Math.round(10000 * (1 - Math.pow(distance / 40, 2))));
     
     setFinalGuess({ x, z });
-    setMatchHistory([...matchHistory, { round: currentRound, score, error: Math.round(distance), guess: { x, z } }]);
+    setMatchHistory([...matchHistory, { round: currentRound, score, error: Math.round(distance), guess: { x, z }, target: targetCoordinates }]);
     setGameState('ROUND_REVEAL');
   };
 

@@ -104,11 +104,12 @@ export const RadarCanvas: React.FC<RadarCanvasProps> = ({ onPendingGuess, gameSt
 
   return (
     <div className="w-full h-full flex justify-center items-center">
-      <div 
+        <div 
         ref={radarRef} 
-        className="w-[400px] h-[400px] rounded-full border-2 border-white relative bg-gray-900 cursor-crosshair"
+        className={`w-[400px] h-[400px] rounded-full border-2 border-white relative bg-gray-900 cursor-crosshair ${gameState === 'AUDIO_PLAYING' ? 'animate-pulse' : ''}`}
         onClick={handleCanvasClick}
       >
+
         {/* Listener */}
         <div className="absolute top-1/2 left-1/2 w-[10px] h-[10px] bg-white rounded-full translate-x-[-50%] translate-y-[-50%] z-20" />
         

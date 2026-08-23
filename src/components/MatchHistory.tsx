@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface MatchHistoryProps {
-  history: { round: number; score: number; error: number; guess: { x: number; z: number } }[];
+  history: { round: number; score: number; error: number; guess: { x: number; z: number }; target: { x: number; z: number } }[];
   currentRound: number;
 }
 
