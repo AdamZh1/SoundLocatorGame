@@ -5,15 +5,27 @@ interface RadarCanvasProps {
   gameState: 'INIT' | 'AUDIO_PLAYING' | 'GUESSING' | 'ROUND_REVEAL' | 'MATCH_OVER';
   targetCoordinates: { x: number; z: number };
   finalGuess: { x: number; z: number } | null;
+  listenerDotRef: React.RefObject<HTMLDivElement | null>;
+  radarRef: React.RefObject<HTMLDivElement | null>;
 }
 
-export const RadarCanvas: React.FC<RadarCanvasProps> = ({ onPendingGuess, gameState, targetCoordinates, finalGuess }) => {
-  const radarRef = useRef<HTMLDivElement>(null);
+export const RadarCanvas: React.FC<RadarCanvasProps> = ({ onPendingGuess, gameState, targetCoordinates, finalGuess, listenerDotRef, radarRef }) => {
   const [markerPos, setMarkerPos] = useState({ x: 0, z: 0 }); // Relative to center
   const [isDragging, setIsDragging] = useState(false);
+  const [hasPlacedGuess, setHasPlacedGuess] = useState(false);
 
   const wasDraggingRef = useRef(false);
   const markerPosRef = useRef({ x: 0, z: 0 });
+
+  // Reset guess state when round changes
+  useEffect(() => {
+    if (gameState === 'INIT') {
+      setHasPlacedGuess(false);
+      setMarkerPos({ x: 0, z: 0 });
+      markerPosRef.current = { x: 0, z: 0 };
+    }
+  }, [gameState]);
+
 
   // Use finalGuess if in ROUND_REVEAL, otherwise markerPos
   const displayPos = gameState === 'ROUND_REVEAL' && finalGuess ? finalGuess : markerPos;
@@ -49,6 +61,7 @@ export const RadarCanvas: React.FC<RadarCanvasProps> = ({ onPendingGuess, gameSt
 
     markerPosRef.current = { x: newX, z: newZ };
     setMarkerPos({ x: newX, z: newZ });
+    setHasPlacedGuess(true);
     onPendingGuess(newX, newZ);
   };
 
@@ -79,6 +92,7 @@ export const RadarCanvas: React.FC<RadarCanvasProps> = ({ onPendingGuess, gameSt
     const newPos = { x: finalXPixels * metersPerPixel, z: finalZPixels * metersPerPixel };
     markerPosRef.current = newPos; // Update ref
     setMarkerPos(newPos);
+    setHasPlacedGuess(true);
   };
 
   const handleMouseUp = () => {
@@ -106,15 +120,16 @@ export const RadarCanvas: React.FC<RadarCanvasProps> = ({ onPendingGuess, gameSt
     <div className="w-full h-full flex justify-center items-center">
         <div 
         ref={radarRef} 
-        className={`w-[400px] h-[400px] rounded-full border-2 border-white relative bg-gray-900 cursor-crosshair ${gameState === 'AUDIO_PLAYING' ? 'animate-pulse' : ''}`}
+        className="w-[400px] h-[400px] rounded-full border-2 border-white relative bg-gray-900 cursor-crosshair"
         onClick={handleCanvasClick}
       >
 
+
         {/* Listener */}
-        <div className="absolute top-1/2 left-1/2 w-[10px] h-[10px] bg-white rounded-full translate-x-[-50%] translate-y-[-50%] z-20" />
+        <div ref={listenerDotRef} className="absolute top-1/2 left-1/2 w-[10px] h-[10px] bg-white rounded-full z-20" style={{ transform: 'translate(-50%, -50%)' }} />
         
         {/* Guess Marker */}
-        {(gameState === 'GUESSING' || gameState === 'ROUND_REVEAL') && (
+        {(gameState === 'ROUND_REVEAL' || (gameState === 'GUESSING' && hasPlacedGuess)) && (
             <div 
             className="w-[12px] h-[12px] bg-green-500 rounded-full absolute z-30 cursor-grab shadow-md translate-x-[-50%] translate-y-[-50%]"
             style={{ left: `calc(50% + ${renderX}px)`, top: `calc(50% + ${renderY}px)` }}

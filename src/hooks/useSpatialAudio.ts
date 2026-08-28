@@ -6,17 +6,19 @@ export const useSpatialAudio = () => {
   const gainNode = useRef<GainNode | null>(null);
   const pannerNode = useRef<PannerNode | null>(null);
   const filterNode = useRef<BiquadFilterNode | null>(null);
+  const analyserNode = useRef<AnalyserNode | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
   const isGraphFullyConnected = useRef(false);
   const buffers = useRef<Map<string, AudioBuffer>>(new Map());
   const [loaded, setLoaded] = useState(false);
-
+  
   // Pre-load buffers on mount
   useEffect(() => {
     const loadBuffers = async () => {
       // Temporary context just to decode audio data without playing
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
       for (const file of audioFiles) {
-        const response = await fetch(`/${file}`);
+        const response = await fetch(`/game_audio_comp/${file}`);
         if (!response.ok) continue;
         const arrayBuffer = await response.arrayBuffer();
         const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
@@ -35,7 +37,10 @@ export const useSpatialAudio = () => {
       gainNode.current = audioContext.current.createGain();
       pannerNode.current = audioContext.current.createPanner();
       filterNode.current = audioContext.current.createBiquadFilter();
+      analyserNode.current = audioContext.current.createAnalyser();
       
+      analyserNode.current.fftSize = 32;
+
       filterNode.current.type = 'highshelf';
       filterNode.current.frequency.value = 5500;
       
@@ -47,16 +52,25 @@ export const useSpatialAudio = () => {
 
       // Connect filter -> panner, but Panner -> Gain will be deferred until first play
       filterNode.current.connect(pannerNode.current);
-      gainNode.current.connect(audioContext.current.destination);
+      // Chain: Gain -> Analyser -> Destination
+      gainNode.current.connect(analyserNode.current);
+      analyserNode.current.connect(audioContext.current.destination);
     }
     if (audioContext.current.state === 'suspended') {
       await audioContext.current.resume();
     }
   };
 
-  const playAudio = async (x: number, z: number, volume: number, soundName: string) => {
+  const playAudio = async (
+    x: number, 
+    z: number, 
+    volume: number, 
+    soundName: string, 
+    dotRef: React.RefObject<HTMLDivElement | null>,
+    ringRef: React.RefObject<HTMLDivElement | null>
+  ) => {
     await ensureContextReady();
-    if (!audioContext.current || !gainNode.current || !pannerNode.current || !filterNode.current || !buffers.current.has(soundName)) return;
+    if (!audioContext.current || !gainNode.current || !pannerNode.current || !filterNode.current || !analyserNode.current || !buffers.current.has(soundName)) return;
 
     const distance = Math.sqrt(x * x + z * z);
     const attenuation = Math.max(0, 1 - Math.pow(distance / 50, 0.75)); 
@@ -85,6 +99,44 @@ export const useSpatialAudio = () => {
     source.buffer = buffers.current.get(soundName)!;
     source.connect(filterNode.current);
     source.start();
+
+    // Start animation loop
+    const bufferLength = analyserNode.current.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    
+    const animate = () => {
+      if (!analyserNode.current) return;
+      analyserNode.current.getByteFrequencyData(dataArray);
+      
+      let sum = 0;
+      for (let i = 0; i < bufferLength; i++) {
+        sum += dataArray[i];
+      }
+      const average = sum / bufferLength;
+      const dotScale = 1 + (average / 255) * 1.5; // Scale between 1 and 2.5
+      const ringScale = 1 + (average / 255) * 0.2; // Smaller pulse for ring
+      
+      if (dotRef.current) {
+        dotRef.current.style.transform = `translate(-50%, -50%) scale(${dotScale})`;
+      }
+      if (ringRef.current) {
+        ringRef.current.style.transform = `scale(${ringScale})`;
+      }
+      animationFrameRef.current = requestAnimationFrame(animate);
+    };
+    animate();
+
+    source.onended = () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (dotRef.current) {
+        dotRef.current.style.transform = 'translate(-50%, -50%) scale(1.0)';
+      }
+      if (ringRef.current) {
+        ringRef.current.style.transform = 'scale(1.0)';
+      }
+    };
   };
 
   const setVolume = (volume: number) => {

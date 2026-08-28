@@ -4,7 +4,14 @@ import { MiniRadar } from './MiniRadar';
 
 interface CalibrationModalProps {
   onClose: () => void;
-  playAudio: (x: number, z: number, volume: number, soundName: string) => Promise<void>;
+  playAudio: (
+    x: number, 
+    z: number, 
+    volume: number, 
+    soundName: string, 
+    dotRef: React.RefObject<HTMLDivElement | null>, 
+    ringRef: React.RefObject<HTMLDivElement | null>
+  ) => Promise<void>;
   volume: number;
   onVolumeChange: (vol: number) => void;
   onSelectedSoundChange: (val: string) => void;
@@ -40,7 +47,7 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
     
     const soundToPlay = selectedSound !== '' ? selectedSound : audioFiles[0];
     setIsPlaying(true);
-    await playAudio(x, z, volume, soundToPlay);
+    await playAudio(x, z, volume, soundToPlay, { current: null }, { current: null });
     setIsPlaying(false);
   };
 

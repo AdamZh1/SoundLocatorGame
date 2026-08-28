@@ -72,3 +72,29 @@
 ## Next Steps
 - Implement quality-of-life improvements.
 - Enhance visual aesthetics using Tailwind CSS.
+
+## Summary of Work (August 23, 2026)
+- Implemented interactive End Screen with scrollable, multi-accordion round summaries using Tailwind CSS.
+- Implemented real-time audio visualization: center listener dot and outer radar ring pulse in sync with audio volume using AnalyserNode.
+- Added animated score popup on ROUND_REVEAL (currently non-functional).
+
+## Bugs Fixed
+- Fixed coordinate mapping error in ResultRadar (radius vs. diameter issue).
+- Fixed listener dot alignment glitch caused by CSS transform conflicts.
+- Fixed green guess marker appearing automatically before user click.
+
+## Bugs / Known Issues
+- Score popup animation is currently not rendering/animating correctly.
+
+## Summary of Work (August 27, 2026)
+- Adjusted `ScorePopup` animation to start/end higher for better positioning.
+- Added continuous pulsating animation (`pulse-size`) to the `ScorePopup` text.
+- Updated audio file loading paths to `public/game_audio_comp/`.
+- Implemented UI sound playback (`jingles_STEEL10.ogg`) triggered upon `ScorePopup` appearance.
+
+## Bugs Fixed
+- Adjusted animation keyframes to prevent overlapping/clipping and achieve desired positioning.
+
+## Next Steps
+- Implement further UI enhancements and refinements.
+

@@ -1,1 +1,19 @@
 @import "tailwindcss";
+
+@keyframes score-rise {
+  0% { transform: translateY(-70px); opacity: 0; }
+  100% { transform: translateY(-250px); opacity: 1; }
+}
+
+@keyframes pulse-size {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.animate-score-rise {
+  animation: score-rise 1.5s ease-out forwards;
+}
+
+.animate-pulse-size {
+  animation: pulse-size 2s ease-in-out infinite;
+}

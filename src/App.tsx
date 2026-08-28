@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AudioController } from './components/AudioController';
 import { RadarCanvas } from './components/RadarCanvas';
 import { MatchHistory } from './components/MatchHistory';
 import { CalibrationModal } from './components/CalibrationModal';
 import HomeScreen from './components/HomeScreen';
 import EndScreen from './components/EndScreen';
+import { ScorePopup } from './components/ScorePopup';
 import { useSpatialAudio } from './hooks/useSpatialAudio';
 
 const App: React.FC = () => {
+  const listenerDotRef = useRef<HTMLDivElement>(null);
+  const radarRef = useRef<HTMLDivElement>(null);
   const [appStage, setAppStage] = useState<'HOME' | 'GAME'>('HOME');
   const [gameState, setGameState] = useState<'INIT' | 'AUDIO_PLAYING' | 'GUESSING' | 'ROUND_REVEAL' | 'MATCH_OVER'>('INIT');
   const [isCalibrationOpen, setIsCalibrationOpen] = useState(false);
@@ -55,7 +58,7 @@ const App: React.FC = () => {
     const soundToPlay = selectedSound !== '' ? selectedSound : soundFiles[Math.floor(Math.random() * soundFiles.length)];
     
     console.log(`Playing ${soundToPlay} at (${x}, ${z})`);
-    await playAudio(x, z, volume, soundToPlay);
+    await playAudio(x, z, volume, soundToPlay, listenerDotRef, radarRef);
     setTimeout(() => setGameState('GUESSING'), 1000);
   };
 
@@ -145,7 +148,12 @@ const App: React.FC = () => {
               gameState={gameState}
               targetCoordinates={targetCoordinates}
               finalGuess={finalGuess}
+              listenerDotRef={listenerDotRef}
+              radarRef={radarRef}
             />
+            {gameState === 'ROUND_REVEAL' && (
+              <ScorePopup score={matchHistory[matchHistory.length - 1].score} />
+            )}
             {gameState === 'GUESSING' && (
               <button 
                 onClick={handleConfirmGuess}
