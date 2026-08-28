@@ -26,7 +26,7 @@ const EndScreen: React.FC<EndScreenProps> = ({ history, onPlayAgain }) => {
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-95 z-50 p-4">
       <div className="max-w-md w-full p-8 bg-gray-800 border border-gray-700 rounded-2xl shadow-xl text-center overflow-y-auto max-h-[90vh] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-        <h1 className="text-3xl font-bold mb-6 text-white">Match Complete</h1>
+        <h1 className="main-header mb-6 text-white text-[3rem]">Match Complete</h1>
         
         <div className="mb-6">
           <p className="text-gray-400">Final Score</p>
@@ -62,12 +62,14 @@ const EndScreen: React.FC<EndScreenProps> = ({ history, onPlayAgain }) => {
         </div>
 
 
-        <button
-          onClick={onPlayAgain}
-          className="w-full px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg transition-colors"
-        >
-          Play Again
-        </button>
+        <div className="btn-primary-border">
+          <button
+            onClick={onPlayAgain}
+            className="btn-circle bg-gray-900 w-full rounded-full"
+          >
+            Play Again
+          </button>
+        </div>
       </div>
     </div>
   );

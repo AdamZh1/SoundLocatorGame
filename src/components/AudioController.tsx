@@ -6,74 +6,38 @@ interface AudioControllerProps {
   volume: number;
   onVolumeChange: (vol: number) => void;
   disabled?: boolean;
-  manualX: string;
-  manualZ: string;
-  onManualXChange: (val: string) => void;
-  onManualZChange: (val: string) => void;
-  selectedSound: string;
-  onSelectedSoundChange: (val: string) => void;
-  soundFiles: string[];
 }
 
 export const AudioController: React.FC<AudioControllerProps> = ({ 
-  onPlay, onOpenCalibration, volume, onVolumeChange, disabled, 
-  manualX, manualZ, onManualXChange, onManualZChange,
-  selectedSound, onSelectedSoundChange, soundFiles
+  onPlay, onOpenCalibration, volume, onVolumeChange, disabled
 }) => {
   return (
-    <div className="w-full h-full p-4 flex flex-col gap-4">
-      <h2 className="text-xl font-bold">Audio Controller</h2>
-      <button 
-        onClick={onPlay}
-        disabled={disabled}
-        className="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-blue-700 transition active:translate-y-[2px] disabled:bg-gray-600 disabled:cursor-not-allowed"
-      >
-        Play Audio
-      </button>
-
-      <button 
-        onClick={onOpenCalibration}
-        className="bg-purple-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-purple-700 transition active:translate-y-[2px]"
-      >
-        Calibrate Audio
-      </button>
-
-      <div className="p-4 border border-gray-600 rounded-xl bg-gray-800">
-        <h3 className="text-sm font-semibold mb-2">Test Sound</h3>
-        <select 
-          value={selectedSound}
-          onChange={(e) => onSelectedSoundChange(e.target.value)}
-          className="w-full bg-gray-700 p-2 rounded text-sm text-white"
-        >
-          <option value="">Random</option>
-          {soundFiles.map(file => (
-            <option key={file} value={file}>{file}</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="p-4 border border-gray-600 rounded-xl bg-gray-800">
-        <h3 className="text-sm font-semibold mb-2">Debug Coordinates</h3>
-        <div className="flex gap-2 mb-2">
-          <input 
-            type="number" 
-            placeholder="X" 
-            value={manualX}
-            onChange={(e) => onManualXChange(e.target.value)}
-            className="w-full bg-gray-700 p-2 rounded text-sm"
-          />
-          <input 
-            type="number" 
-            placeholder="Z" 
-            value={manualZ}
-            onChange={(e) => onManualZChange(e.target.value)}
-            className="w-full bg-gray-700 p-2 rounded text-sm"
-          />
+    <div className="w-full h-full p-4 flex flex-col gap-4 items-center">
+      <h2 className="text-xl font-bold uppercase tracking-widest text-gray-500">Audio</h2>
+      <div className="flex flex-row gap-4 items-center">
+        <div className="btn-primary-border">
+          <button 
+            onClick={onPlay}
+            disabled={disabled}
+            className="btn-circle bg-gray-900 text-blue-400"
+          >
+            Play
+          </button>
         </div>
+
+        <button 
+          onClick={onOpenCalibration}
+          className="btn-circle bg-gray-800 text-purple-400 hover:bg-gray-700"
+        >
+          Setup
+        </button>
       </div>
 
-      <div className="p-4 border border-gray-600 rounded-xl bg-gray-800">
-        <label className="block mb-2 text-sm">Volume</label>
+      <div className="w-full p-2">
+        <div className="flex justify-between items-center mb-2">
+          <label className="text-sm lowercase tracking-tighter text-gray-400">volume</label>
+          <span className="text-xs font-mono text-gray-500">{(volume * 200).toFixed(0)}%</span>
+        </div>
         <input 
           type="range" 
           min="0" 
@@ -81,7 +45,9 @@ export const AudioController: React.FC<AudioControllerProps> = ({
           step="0.01" 
           value={volume}
           onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
-          className="w-full appearance-none bg-gray-700 h-[6px] rounded-[3px] outline-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-[15px] [&::-webkit-slider-thumb]:h-[15px] [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:cursor-pointer"
+          className="w-full appearance-none bg-black h-2 rounded-full cursor-pointer 
+            [&::-webkit-slider-runnable-track]:bg-gradient-to-r [&::-webkit-slider-runnable-track]:from-cyan-500 [&::-webkit-slider-runnable-track]:to-purple-500 [&::-webkit-slider-runnable-track]:rounded-full
+            [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:active:scale-125"
         />
       </div>
     </div>

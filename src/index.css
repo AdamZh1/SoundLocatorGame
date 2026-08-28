@@ -1,4 +1,25 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
+
+@theme {
+  --font-sans: "Outfit", sans-serif;
+  --animate-score-rise: score-rise 1.5s ease-out forwards;
+  --animate-pulse-size: pulse-size 2s ease-in-out infinite;
+}
+
+@layer components {
+  .btn-circle {
+    @apply size-20 rounded-full flex items-center justify-center font-bold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)];
+  }
+  
+  .btn-primary-border {
+    @apply p-[1px] rounded-full bg-gradient-to-br from-blue-500 to-purple-500;
+  }
+
+  .main-header {
+    @apply text-[6rem] lowercase tracking-tighter font-bold;
+  }
+}
 
 @keyframes score-rise {
   0% { transform: translateY(-70px); opacity: 0; }
@@ -8,12 +29,4 @@
 @keyframes pulse-size {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.1); }
-}
-
-.animate-score-rise {
-  animation: score-rise 1.5s ease-out forwards;
-}
-
-.animate-pulse-size {
-  animation: pulse-size 2s ease-in-out infinite;
 }
