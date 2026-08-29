@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { audioFiles } from '../audioConfig';
 import { MiniRadar } from './MiniRadar';
-import { playUiSound } from '../utils/audioHelper';
+import { playUiSound, playHoverSound } from '../utils/audioHelper';
 
 interface CalibrationModalProps {
   onClose: () => void;
@@ -60,12 +60,14 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
         <div className="flex gap-2 mb-6 justify-center">
           <button 
             onClick={() => setMode('selection')}
+            onMouseEnter={playHoverSound}
             className={`btn-circle ${mode === 'selection' ? 'bg-blue-600' : 'bg-gray-700'}`}
           >
             Select
           </button>
           <button 
             onClick={() => setMode('radar')}
+            onMouseEnter={playHoverSound}
             className={`btn-circle ${mode === 'radar' ? 'bg-blue-600' : 'bg-gray-700'}`}
           >
             Radar
@@ -82,6 +84,7 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
                 <button 
                   key={d} 
                   onClick={() => setSelectedDistance(d)}
+                  onMouseEnter={playHoverSound}
                   className={`btn-circle ${selectedDistance === d ? 'bg-blue-600' : 'bg-gray-700'}`}
                 >
                   {d}m
@@ -95,6 +98,7 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
                 <button 
                   key={dir} 
                   onClick={() => setSelectedDirection(dir)}
+                  onMouseEnter={playHoverSound}
                   className={`btn-circle ${selectedDirection === dir ? 'bg-blue-600' : 'bg-gray-700'}`}
                 >
                   {dir.charAt(0).toUpperCase()}
@@ -139,6 +143,7 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
         <div className="btn-primary-border mb-2">
           <button 
             onClick={handlePlay}
+            onMouseEnter={playHoverSound}
             disabled={!loaded || isPlaying}
             className="btn-circle bg-gray-900 w-full rounded-full"
           >
@@ -146,7 +151,13 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
           </button>
         </div>
 
-        <button onClick={() => { playUiSound(); onClose(); }} className="btn-circle bg-red-600 text-white w-full rounded-full">Close</button>
+        <button 
+            onClick={() => { playUiSound(); onClose(); }} 
+            onMouseEnter={playHoverSound}
+            className="btn-circle bg-red-600 text-white w-full rounded-full"
+        >
+            Close
+        </button>
       </div>
     </div>
   );

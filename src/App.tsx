@@ -7,7 +7,7 @@ import HomeScreen from './components/HomeScreen';
 import EndScreen from './components/EndScreen';
 import { ScorePopup } from './components/ScorePopup';
 import { useSpatialAudio } from './hooks/useSpatialAudio';
-import { playUiSound } from './utils/audioHelper';
+import { playUiSound, playHoverSound } from './utils/audioHelper';
 
 const App: React.FC = () => {
   const listenerDotRef = useRef<HTMLDivElement>(null);
@@ -147,6 +147,7 @@ const App: React.FC = () => {
               <div className="btn-primary-border absolute -bottom-24">
                 <button 
                   onClick={handleConfirmGuess}
+                  onMouseEnter={playHoverSound}
                   disabled={!pendingGuess}
                   className="btn-circle bg-black text-white disabled:opacity-50"
                 >
@@ -158,6 +159,7 @@ const App: React.FC = () => {
               <div className="btn-primary-border absolute -bottom-24">
                 <button 
                   onClick={() => { playUiSound(); handleNextRound(); }}
+                  onMouseEnter={playHoverSound}
                   className="btn-circle bg-black text-white"
                 >
                   {currentRound < 5 ? 'Next' : 'Finish'}

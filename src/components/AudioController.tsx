@@ -1,5 +1,5 @@
 import React from 'react';
-import { playUiSound } from '../utils/audioHelper';
+import { playUiSound, playHoverSound } from '../utils/audioHelper';
 
 interface AudioControllerProps {
   onPlay: () => void;
@@ -19,6 +19,7 @@ export const AudioController: React.FC<AudioControllerProps> = ({
         <div className="btn-primary-border">
           <button 
             onClick={onPlay}
+            onMouseEnter={playHoverSound}
             disabled={disabled}
             className="btn-circle bg-gray-900 text-blue-400"
           >
@@ -28,6 +29,7 @@ export const AudioController: React.FC<AudioControllerProps> = ({
 
         <button 
           onClick={() => { playUiSound(); onOpenCalibration(); }}
+          onMouseEnter={playHoverSound}
           className="btn-circle bg-gray-800 text-purple-400 hover:bg-gray-700"
         >
           Setup

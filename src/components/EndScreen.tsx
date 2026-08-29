@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { ResultRadar } from './ResultRadar';
-import { playUiSound } from '../utils/audioHelper';
+import { playUiSound, playHoverSound } from '../utils/audioHelper';
 
 interface EndScreenProps {
   history: { round: number; score: number; error: number; guess: { x: number; z: number }; target: { x: number; z: number } }[];
@@ -42,6 +42,7 @@ const EndScreen: React.FC<EndScreenProps> = ({ history, onPlayAgain }) => {
                 <button
                   className="w-full flex justify-between items-center text-sm p-3 hover:bg-gray-900 transition-colors"
                   onClick={() => toggleRound(item.round)}
+                  onMouseEnter={playHoverSound}
                 >
                   <span>Round {item.round}</span>
                   <span className="font-mono text-gray-400">{item.score} pts - {item.error}m</span>
@@ -66,6 +67,7 @@ const EndScreen: React.FC<EndScreenProps> = ({ history, onPlayAgain }) => {
         <div className="btn-primary-border">
           <button
             onClick={() => { playUiSound(); onPlayAgain(); }}
+            onMouseEnter={playHoverSound}
             className="btn-circle bg-black w-full rounded-full"
           >
             Play Again
