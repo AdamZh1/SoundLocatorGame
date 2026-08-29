@@ -68,9 +68,18 @@ const EndScreen: React.FC<EndScreenProps> = ({ history, onPlayAgain }) => {
           <button
             onClick={() => { playUiSound(); onPlayAgain(); }}
             onMouseEnter={playHoverSound}
-            className="btn-circle bg-black w-full rounded-full"
+            className="group relative overflow-hidden btn-circle bg-black w-full rounded-full transition-all duration-300"
           >
-            Play Again
+            <span className="relative z-10 pointer-events-none">Play Again</span>
+            <div className="absolute inset-0 z-0 overflow-hidden translate-y-full group-hover:translate-y-0 transition-all duration-1000 ease-out pointer-events-none">
+              <div className="absolute inset-0 bg-blue-500/30"></div>
+              <svg className="absolute -top-1 left-0 w-[200%] animate-wave-move opacity-30" viewBox="0 0 100 20" preserveAspectRatio="none">
+                <path d="M0 10 Q 25 0 50 10 T 100 10 V 20 H 0 Z" fill="white" />
+              </svg>
+              <svg className="absolute -top-1 left-0 w-[200%] animate-wave-move-reverse opacity-60" viewBox="0 0 100 20" preserveAspectRatio="none">
+                <path d="M0 10 Q 25 20 50 10 T 100 10 V 20 H 0 Z" fill="white" />
+              </svg>
+            </div>
           </button>
         </div>
       </div>

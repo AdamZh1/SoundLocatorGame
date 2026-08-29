@@ -5,6 +5,8 @@
   --font-sans: "Outfit", sans-serif;
   --animate-score-rise: score-rise 1.5s ease-out forwards;
   --animate-pulse-size: pulse-size 2s ease-in-out infinite;
+  --animate-wave-move: wave-move 4s linear infinite;
+  --animate-wave-move-reverse: wave-move 2s linear infinite reverse;
 }
 
 @layer components {
@@ -15,7 +17,7 @@
   .btn-primary-border {
     @apply p-[1px] rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center;
   }
-
+  
   .main-header {
     @apply text-[6rem] lowercase tracking-tighter font-bold;
   }
@@ -38,3 +40,9 @@
 .animate-slow-breathe {
   animation: slow-breathe 7s ease-in-out infinite;
 }
+
+@keyframes wave-move {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
