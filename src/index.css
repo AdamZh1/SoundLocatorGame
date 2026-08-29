@@ -13,7 +13,7 @@
   }
   
   .btn-primary-border {
-    @apply p-[1px] rounded-full bg-gradient-to-br from-blue-500 to-purple-500;
+    @apply p-[1px] rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center;
   }
 
   .main-header {
@@ -29,4 +29,12 @@
 @keyframes pulse-size {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.1); }
+}
+
+@keyframes slow-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.25; }
+  50% { transform: scale(1.08); opacity: 0.45; }
+}
+.animate-slow-breathe {
+  animation: slow-breathe 7s ease-in-out infinite;
 }

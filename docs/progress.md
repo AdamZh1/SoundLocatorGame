@@ -95,6 +95,17 @@
 ## Bugs Fixed
 - Adjusted animation keyframes to prevent overlapping/clipping and achieve desired positioning.
 
+## Summary of Work (August 29, 2026)
+- Implemented "Pure Black Void" minimalist UI theme across the entire application.
+- Added and refined a minimalist, breathing monochromatic underglow for the `RadarCanvas`.
+- Adjusted the scoring system formula to be stricter (decay divisor 40 -> 30).
+- Unified UI button interaction sounds to `jingles_NES10.ogg` using a new `audioHelper` utility.
+- Restored `jingles_STEEL10.ogg` specifically for the `ScorePopup`.
+
+## Bugs Fixed
+- Resolved UI gradient border offset issues on the Start button by adjusting container sizing and centering.
+- Corrected audio playback assignment for the `ScorePopup`.
+
 ## Next Steps
-- Implement further UI enhancements and refinements.
+- Continue UI refinements and audio enhancement tasks.
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { audioFiles } from '../audioConfig';
 import { MiniRadar } from './MiniRadar';
+import { playUiSound } from '../utils/audioHelper';
 
 interface CalibrationModalProps {
   onClose: () => void;
@@ -53,7 +54,7 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-gray-900/80 z-50 flex justify-center items-center">
-      <div className="bg-gray-800 p-6 rounded-xl border border-gray-600 w-[500px] max-h-[90vh] overflow-y-auto">
+      <div className="bg-black p-6 rounded-xl border border-gray-600 w-[500px] max-h-[90vh] overflow-y-auto">
         <h2 className="text-3xl font-bold mb-6 uppercase tracking-widest text-center text-gray-400">Calibration</h2>
         
         <div className="flex gap-2 mb-6 justify-center">
@@ -103,7 +104,7 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
           </div>
         )}
 
-        <div className="mb-6 p-4 border border-gray-600 rounded-xl bg-gray-900">
+        <div className="mb-6 p-4 border border-gray-600 rounded-xl bg-black">
           <label className="block mb-2 text-sm text-gray-400">Select Sound</label>
           <select 
             value={selectedSound}
@@ -145,7 +146,7 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
           </button>
         </div>
 
-        <button onClick={onClose} className="btn-circle bg-red-600 text-white w-full rounded-full">Close</button>
+        <button onClick={() => { playUiSound(); onClose(); }} className="btn-circle bg-red-600 text-white w-full rounded-full">Close</button>
       </div>
     </div>
   );

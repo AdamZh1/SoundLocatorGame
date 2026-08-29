@@ -1,4 +1,5 @@
 import React from 'react';
+import { playUiSound } from '../utils/audioHelper';
 
 interface AudioControllerProps {
   onPlay: () => void;
@@ -26,7 +27,7 @@ export const AudioController: React.FC<AudioControllerProps> = ({
         </div>
 
         <button 
-          onClick={onOpenCalibration}
+          onClick={() => { playUiSound(); onOpenCalibration(); }}
           className="btn-circle bg-gray-800 text-purple-400 hover:bg-gray-700"
         >
           Setup

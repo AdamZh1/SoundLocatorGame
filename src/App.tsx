@@ -7,6 +7,7 @@ import HomeScreen from './components/HomeScreen';
 import EndScreen from './components/EndScreen';
 import { ScorePopup } from './components/ScorePopup';
 import { useSpatialAudio } from './hooks/useSpatialAudio';
+import { playUiSound } from './utils/audioHelper';
 
 const App: React.FC = () => {
   const listenerDotRef = useRef<HTMLDivElement>(null);
@@ -68,7 +69,7 @@ const App: React.FC = () => {
 
   const handleGuessSubmit = (x: number, z: number) => {
     const distance = Math.sqrt(Math.pow(targetCoordinates.x - x, 2) + Math.pow(targetCoordinates.z - z, 2));
-    const score = Math.max(0, Math.round(10000 * (1 - Math.pow(distance / 40, 2))));
+    const score = Math.max(0, Math.round(10000 * (1 - Math.pow(distance / 30, 2))));
     
     setFinalGuess({ x, z });
     setMatchHistory([...matchHistory, { round: currentRound, score, error: Math.round(distance), guess: { x, z }, target: targetCoordinates }]);
@@ -101,9 +102,9 @@ const App: React.FC = () => {
     appStage === 'HOME' ? (
       <HomeScreen onStartGame={handleStartGame} />
     ) : (
-      <div className="flex h-screen bg-gray-900 text-white w-full">
+      <div className="flex h-screen bg-black text-white w-full">
         {/* Left Panel */}
-        <div className="w-1/4 h-full border-r border-gray-700 bg-gray-900">
+        <div className="w-1/4 h-full border-r border-gray-700 bg-black">
           <AudioController 
             onPlay={handlePlay} 
             onOpenCalibration={() => setIsCalibrationOpen(true)}
@@ -147,7 +148,7 @@ const App: React.FC = () => {
                 <button 
                   onClick={handleConfirmGuess}
                   disabled={!pendingGuess}
-                  className="btn-circle bg-gray-900 text-white disabled:opacity-50"
+                  className="btn-circle bg-black text-white disabled:opacity-50"
                 >
                   Confirm
                 </button>
@@ -156,8 +157,8 @@ const App: React.FC = () => {
             {gameState === 'ROUND_REVEAL' && (
               <div className="btn-primary-border absolute -bottom-24">
                 <button 
-                  onClick={handleNextRound}
-                  className="btn-circle bg-gray-900 text-white"
+                  onClick={() => { playUiSound(); handleNextRound(); }}
+                  className="btn-circle bg-black text-white"
                 >
                   {currentRound < 5 ? 'Next' : 'Finish'}
                 </button>
@@ -167,7 +168,7 @@ const App: React.FC = () => {
         </div>
 
         {/* Right Panel */}
-        <div className="w-1/4 h-full border-l border-gray-700 bg-gray-900">
+        <div className="w-1/4 h-full border-l border-gray-700 bg-black">
           <MatchHistory 
             history={matchHistory} 
             currentRound={currentRound} 
