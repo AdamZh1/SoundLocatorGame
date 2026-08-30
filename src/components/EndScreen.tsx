@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { ResultRadar } from './ResultRadar';
 import { playUiSound, playHoverSound } from '../utils/audioHelper';
+import { LiquidButtonCanvas, type LiquidButtonCanvasHandle } from './LiquidButtonCanvas';
 
 interface EndScreenProps {
   history: { round: number; score: number; error: number; guess: { x: number; z: number }; target: { x: number; z: number } }[];
@@ -10,6 +11,7 @@ interface EndScreenProps {
 const EndScreen: React.FC<EndScreenProps> = ({ history, onPlayAgain }) => {
   const totalScore = history.reduce((sum, item) => sum + item.score, 0);
   const [expandedRounds, setExpandedRounds] = useState<Set<number>>(new Set());
+  const canvasRef = useRef<LiquidButtonCanvasHandle>(null);
   const contentRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
   const toggleRound = (round: number) => {
@@ -65,21 +67,14 @@ const EndScreen: React.FC<EndScreenProps> = ({ history, onPlayAgain }) => {
 
 
         <div className="btn-primary-border">
-          <button
-            onClick={() => { playUiSound(); onPlayAgain(); }}
-            onMouseEnter={playHoverSound}
-            className="group relative overflow-hidden btn-circle bg-black w-full rounded-full transition-all duration-300"
-          >
+        <button
+        onClick={() => { playUiSound(); onPlayAgain(); }}
+        onMouseEnter={() => { playHoverSound(); canvasRef.current?.setHovered(true); }}
+        onMouseLeave={() => canvasRef.current?.setHovered(false)}
+        className="group relative overflow-hidden btn-circle bg-black w-full rounded-full transition-colors duration-300"
+      >
             <span className="relative z-10 pointer-events-none">Play Again</span>
-            <div className="absolute inset-0 z-0 overflow-hidden translate-y-full group-hover:translate-y-0 transition-all duration-1000 ease-out pointer-events-none">
-              <div className="absolute inset-0 bg-blue-500/30"></div>
-              <svg className="absolute -top-1 left-0 w-[200%] animate-wave-move opacity-30" viewBox="0 0 100 20" preserveAspectRatio="none">
-                <path d="M0 10 Q 25 0 50 10 T 100 10 V 20 H 0 Z" fill="white" />
-              </svg>
-              <svg className="absolute -top-1 left-0 w-[200%] animate-wave-move-reverse opacity-60" viewBox="0 0 100 20" preserveAspectRatio="none">
-                <path d="M0 10 Q 25 20 50 10 T 100 10 V 20 H 0 Z" fill="white" />
-              </svg>
-            </div>
+            <LiquidButtonCanvas ref={canvasRef} />
           </button>
         </div>
       </div>
@@ -88,3 +83,4 @@ const EndScreen: React.FC<EndScreenProps> = ({ history, onPlayAgain }) => {
 };
 
 export default EndScreen;
+

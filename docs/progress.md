@@ -60,18 +60,11 @@
 ## Bugs / Known Issues
 - Intermittent initial audio glitch: sounds briefly play at the origin `(0, 0, 0)` on the very first play, specifically in the calibration mode.
 
-## Next Steps
-- Investigate and resolve the intermittent initial audio glitch (sounds playing at origin on first play).
-
 ## Summary of Work (August 21, 2026 - Continued)
 - Verified that the new "Home Screen" entry point successfully resolves the intermittent initial audio origin-glitch by ensuring `AudioContext` is fully initialized and resumed via user interaction before game start.
 
 ## Bugs Fixed
 - Resolved the intermittent initial audio glitch (sounds playing at `(0, 0, 0)` on the first play).
-
-## Next Steps
-- Implement quality-of-life improvements.
-- Enhance visual aesthetics using Tailwind CSS.
 
 ## Summary of Work (August 23, 2026)
 - Implemented interactive End Screen with scrollable, multi-accordion round summaries using Tailwind CSS.
@@ -106,6 +99,13 @@
 - Resolved UI gradient border offset issues on the Start button by adjusting container sizing and centering.
 - Corrected audio playback assignment for the `ScorePopup`.
 
-## Next Steps
-- Continue UI refinements and audio enhancement tasks.
+## Summary of Work (August 29, 2026 - Continued)
+- Added hover sound effects (`mouserelease1.ogg`) to UI buttons.
+- Implemented high-performance, stateless 2D liquid physics simulation for the 'Play Again' button.
 
+## Bugs Fixed
+- Resolved layout conflicts caused by mixing Tailwind classes and absolute positioning.
+- Fixed canvas initialization and React strict mode issues to ensure stable animation.
+
+## Next Steps
+- Continue fixing and refining the liquid button water animation.

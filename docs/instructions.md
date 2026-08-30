@@ -1,18 +1,35 @@
-# UI Refactor: Pure Black Void & Minimalist Radar
+# Bug Fix: Liquid Button Physics Explosion
 
-**Target Files:** Read `src/components/RadarCanvas.tsx` and the main layout wrapper (e.g., `App.tsx`, `Layout.tsx`, or global CSS).
-**Objective:** Convert the entire application to a pure black dark mode, ensuring the radar blends seamlessly into the background with a subtle monochromatic underglow.
+**Target:** `src/components/EndScreen.tsx` (or `LiquidButtonCanvas`).
+**Issue:** The canvas flashes and dies instantly on hover because the spring-mass physics loop is propagating `NaN` values, causing the 2D context to crash.
 
 ## Strict Execution Steps
 
-1. **Global Background:**
-   * Locate the main application wrapper or global body style.
-   * Change the background color to pure black (use `bg-black`).
+1. **Resolution Synchronization:**
+   * Inside the `useEffect`, before starting the physics loop, explicitly set the canvas internal resolution to match its CSS size: 
+     `canvas.width = canvas.offsetWidth;`
+     `canvas.height = canvas.offsetHeight;`
+   * Re-run this on window resize.
 
-2. **Seamless Radar Surface:**
-   * Update the interactive radar container inside `RadarCanvas.tsx` to use `bg-transparent` or `bg-black` so it perfectly matches the new global background without creating a visible seam.
-   * Maintain the ultra-subtle distance rings using `border border-white/10`.
+2. **The Y-Axis Target Logic:**
+   * In HTML Canvas, `Y=0` is the top edge. 
+   * Empty state (mouse leave): `fillTarget.current = canvas.height` (water at the bottom).
+   * Hover state (mouse enter): `fillTarget.current = 0` (water at the top).
 
-3. **The Monochromatic Underglow:**
-   * Ensure the absolutely positioned underglow `div` directly behind the radar uses a subtle, desaturated gradient to act as the only light source in the void: `bg-gradient-to-br from-zinc-800 via-zinc-900 to-black opacity-40 blur-[80px] animate-slow-breathe`.
-   * Keep `pointer-events-none` on this layer.
+3. **Physics Clamping (Anti-Explosion):**
+   * Inside the `requestAnimationFrame` loop, apply strict clamping to the spring physics to prevent `NaN` cascading.
+   * `spring.velocity += force;`
+   * `spring.velocity *= 0.95;` (Friction/Damping safeguard).
+   * `spring.height += spring.velocity;`
+   * **CRITICAL CLAMP:** `spring.height = Math.max(-50, Math.min(canvas.height + 50, spring.height));`
+   
+4. **Safe Splash Injection:**
+   * In the `onMouseMove` handler, clamp the injected velocity so aggressive mouse movements don't break the system.
+   * `const splashForce = Math.min(Math.max(movementY, -20), 20);`
+   * Apply this clamped force to the nearest spring's velocity.
+
+5. **Rendering Path:**
+   * Start the polygon at the bottom-left `(0, canvas.height)`.
+   * Loop through springs: `ctx.lineTo(x, spring.height)`.
+   * End at bottom-right `(canvas.width, canvas.height)`.
+   * `ctx.fill()` with the blue/purple gradient.
