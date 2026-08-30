@@ -16,9 +16,9 @@ export const LiquidButtonCanvas = forwardRef<LiquidButtonCanvasHandle, LiquidBut
   const widthRef = useRef(0);
   const heightRef = useRef(0);
 
-  const K = 0.01;
-  const D = 0.15;
-  const SPREAD = 0.02;
+  const K = 0.002; // Significantly reduced spring constant for slower movement
+  const D = 0.2;   // Increased damping to keep it stable at lower speeds
+  const SPREAD = 0.01;
 
   useImperativeHandle(ref, () => ({
     setHovered: (hovered: boolean) => {
@@ -54,20 +54,22 @@ export const LiquidButtonCanvas = forwardRef<LiquidButtonCanvasHandle, LiquidBut
     resize();
 
     const animate = () => {
+      // Clear canvas only once per frame
       ctx.clearRect(0, 0, widthRef.current, heightRef.current);
 
-      // Physics update
-      springsRef.current.forEach(spring => {
-        const force = K * (spring.target - spring.height) - D * spring.velocity;
-        spring.velocity += force;
-        spring.velocity *= 0.95; // Friction/Damping safeguard
-        spring.height += spring.velocity;
-        // CRITICAL CLAMP
-        spring.height = Math.max(-50, Math.min(heightRef.current + 50, spring.height));
-      });
+      // Physics update: Only run if resolution is valid
+      if (widthRef.current > 0 && heightRef.current > 0) {
+        springsRef.current.forEach(spring => {
+          const force = K * (spring.target - spring.height) - D * spring.velocity;
+          spring.velocity += force;
+          spring.velocity *= 0.9;
+          spring.velocity = Math.max(-50, Math.min(50, spring.velocity));
+          spring.height += spring.velocity;
+          
+          spring.height = Math.max(-20, Math.min(heightRef.current + 20, spring.height));
+        });
 
-      // Spread momentum
-      for (let i = 0; i < 1; i++) {
+        // Spread momentum
         springsRef.current.forEach((spring, j, arr) => {
           if (j > 0) {
             const leftDelta = SPREAD * (spring.height - arr[j - 1].height);
@@ -85,7 +87,9 @@ export const LiquidButtonCanvas = forwardRef<LiquidButtonCanvasHandle, LiquidBut
       ctx.moveTo(0, heightRef.current);
       springsRef.current.forEach((spring, i) => {
         const x = (i / (springsRef.current.length - 1)) * widthRef.current;
-        ctx.lineTo(x, spring.height);
+        // Ensure valid drawing coordinate
+        const y = isNaN(spring.height) ? heightRef.current : spring.height;
+        ctx.lineTo(x, y);
       });
       ctx.lineTo(widthRef.current, heightRef.current);
       ctx.closePath();
