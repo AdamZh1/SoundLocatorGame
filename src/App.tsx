@@ -1,17 +1,35 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AudioController } from './components/AudioController';
 import { RadarCanvas } from './components/RadarCanvas';
 import { MatchHistory } from './components/MatchHistory';
+import { CalibrationModal } from './components/CalibrationModal';
+import HomeScreen from './components/HomeScreen';
+import EndScreen from './components/EndScreen';
+import { ScorePopup } from './components/ScorePopup';
 import { useSpatialAudio } from './hooks/useSpatialAudio';
 
 const App: React.FC = () => {
+  const listenerDotRef = useRef<HTMLDivElement>(null);
+  const radarRef = useRef<HTMLDivElement>(null);
+  const [appStage, setAppStage] = useState<'HOME' | 'GAME'>('HOME');
   const [gameState, setGameState] = useState<'INIT' | 'AUDIO_PLAYING' | 'GUESSING' | 'ROUND_REVEAL' | 'MATCH_OVER'>('INIT');
-  const [volume, setVolume] = useState(0.5);
-  const [matchHistory, setMatchHistory] = useState<string[]>([]);
+  const [isCalibrationOpen, setIsCalibrationOpen] = useState(false);
+  const [volume, setVolume] = useState(0.25);
+  const [matchHistory, setMatchHistory] = useState<{ round: number; score: number; error: number; guess: { x: number; z: number }; target: { x: number; z: number } }[]>([]);
   const [currentRound, setCurrentRound] = useState(1);
   const [targetCoordinates, setTargetCoordinates] = useState({ x: 0, z: 0 });
+  const [pendingGuess, setPendingGuess] = useState<{ x: number; z: number } | null>(null);
+  const [finalGuess, setFinalGuess] = useState<{ x: number; z: number } | null>(null);
+  const [manualX, setManualX] = useState('');
+  const [manualZ, setManualZ] = useState('');
+  const [selectedSound, setSelectedSound] = useState('');
 
-  const { playAudio, setVolume: setAudioVolume } = useSpatialAudio();
+  const { playAudio, setVolume: setAudioVolume, initAudio, soundFiles, loaded } = useSpatialAudio();
+
+  const handleStartGame = async () => {
+    await initAudio();
+    setAppStage('GAME');
+  };
 
   const handleVolumeChange = (newVolume: number) => {
     setVolume(newVolume);
@@ -19,8 +37,11 @@ const App: React.FC = () => {
   };
 
   const generateTarget = () => {
-    const x = (Math.random() * 34 + 1) * (Math.random() > 0.5 ? 1 : -1);
-    const z = (Math.random() * 34 + 1) * (Math.random() > 0.5 ? 1 : -1);
+    const maxRadius = 35;
+    const theta = Math.random() * 2 * Math.PI;
+    const r = Math.sqrt(Math.random()) * maxRadius;
+    const x = r * Math.cos(theta);
+    const z = r * Math.sin(theta);
     setTargetCoordinates({ x, z });
   };
 
@@ -28,55 +49,140 @@ const App: React.FC = () => {
     generateTarget();
   }, []);
 
-  const handlePlay = () => {
+  const handlePlay = async () => {
     setGameState('AUDIO_PLAYING');
-    playAudio(targetCoordinates.x, targetCoordinates.z, volume);
+    const x = manualX !== '' ? parseFloat(manualX) : targetCoordinates.x;
+    const z = manualZ !== '' ? parseFloat(manualZ) : targetCoordinates.z;
+    
+    // Select sound: use dropdown if set, otherwise pick random
+    const soundToPlay = selectedSound !== '' ? selectedSound : soundFiles[Math.floor(Math.random() * soundFiles.length)];
+    
+    console.log(`Playing ${soundToPlay} at (${x}, ${z})`);
+    await playAudio(x, z, volume, soundToPlay, listenerDotRef, radarRef);
     setTimeout(() => setGameState('GUESSING'), 1000);
   };
 
+  const handlePlayAgain = () => {
+    setMatchHistory([]);
+    setCurrentRound(1);
+    setGameState('INIT');
+    generateTarget();
+  };
+
   const handleGuessSubmit = (x: number, z: number) => {
-    const newEntry = `Round ${currentRound}: Guessed (${Math.round(x)}, ${Math.round(z)})`;
-    setMatchHistory([...matchHistory, newEntry]);
+    const distance = Math.sqrt(Math.pow(targetCoordinates.x - x, 2) + Math.pow(targetCoordinates.z - z, 2));
+    const score = Math.max(0, Math.round(10000 * (1 - Math.pow(distance / 40, 2))));
     
+    setFinalGuess({ x, z });
+    setMatchHistory([...matchHistory, { round: currentRound, score, error: Math.round(distance), guess: { x, z }, target: targetCoordinates }]);
+    setGameState('ROUND_REVEAL');
+  };
+
+  const handleNextRound = () => {
     if (currentRound < 5) {
       setCurrentRound(currentRound + 1);
       generateTarget();
-      setGameState('ROUND_REVEAL');
-      setTimeout(() => setGameState('INIT'), 2000); // Wait 2s to show result then reset
+      setGameState('INIT');
+      setFinalGuess(null);
     } else {
       setGameState('MATCH_OVER');
     }
   };
 
+  const handlePendingGuess = (x: number, z: number) => {
+    setPendingGuess({ x, z });
+  };
+
+  const handleConfirmGuess = () => {
+    if (pendingGuess) {
+      handleGuessSubmit(pendingGuess.x, pendingGuess.z);
+      setPendingGuess(null); // Reset pending guess
+    }
+  };
+
   return (
-    <div className="flex h-screen bg-gray-900 text-white w-full">
-      {/* Left Panel */}
-      <div className="w-1/4 h-full border-r border-gray-700 bg-gray-900">
-        <AudioController 
-          onPlay={handlePlay} 
-          volume={volume} 
-          onVolumeChange={handleVolumeChange}
-          disabled={gameState !== 'INIT'}
-        />
-      </div>
+    appStage === 'HOME' ? (
+      <HomeScreen onStartGame={handleStartGame} />
+    ) : (
+      <div className="flex h-screen bg-gray-900 text-white w-full">
+        {/* Left Panel */}
+        <div className="w-1/4 h-full border-r border-gray-700 bg-gray-900">
+          <AudioController 
+            onPlay={handlePlay} 
+            onOpenCalibration={() => setIsCalibrationOpen(true)}
+            volume={volume} 
+            onVolumeChange={handleVolumeChange}
+            disabled={gameState !== 'INIT' || !loaded}
+            manualX={manualX}
+            manualZ={manualZ}
+            onManualXChange={setManualX}
+            onManualZChange={setManualZ}
+            selectedSound={selectedSound}
+            onSelectedSoundChange={setSelectedSound}
+            soundFiles={soundFiles}
+          />
+        </div>
 
-      {/* Center Panel */}
-      <div className="w-1/2 h-full p-4 flex justify-center items-center relative">
-        <RadarCanvas 
-          onGuessSubmit={handleGuessSubmit} 
-          gameState={gameState}
-          targetCoordinates={targetCoordinates}
-        />
-      </div>
+        {isCalibrationOpen && (
+          <CalibrationModal 
+            onClose={() => setIsCalibrationOpen(false)}
+            playAudio={playAudio}
+            volume={volume}
+            onVolumeChange={handleVolumeChange}
+            selectedSound={selectedSound}
+            onSelectedSoundChange={setSelectedSound}
+            soundFiles={soundFiles}
+            loaded={loaded}
+          />
+        )}
 
-      {/* Right Panel */}
-      <div className="w-1/4 h-full border-l border-gray-700 bg-gray-900">
-        <MatchHistory 
-          history={matchHistory} 
-          currentRound={currentRound} 
-        />
+        {gameState === 'MATCH_OVER' && (
+          <EndScreen history={matchHistory} onPlayAgain={handlePlayAgain} />
+        )}
+
+        {/* Center Panel */}
+        <div className="w-1/2 h-full p-4 flex flex-col items-center justify-center">
+          <div className="relative flex flex-col items-center">
+            <RadarCanvas 
+              onPendingGuess={handlePendingGuess} 
+              gameState={gameState}
+              targetCoordinates={targetCoordinates}
+              finalGuess={finalGuess}
+              listenerDotRef={listenerDotRef}
+              radarRef={radarRef}
+            />
+            {gameState === 'ROUND_REVEAL' && (
+              <ScorePopup score={matchHistory[matchHistory.length - 1].score} />
+            )}
+            {gameState === 'GUESSING' && (
+              <button 
+                onClick={handleConfirmGuess}
+                disabled={!pendingGuess}
+                className="absolute -bottom-20 left-1/2 -translate-x-1/2 px-6 py-3 bg-blue-600 hover:bg-blue-700 active:scale-95 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg transition-all font-bold text-white shadow-lg whitespace-nowrap"
+              >
+                Confirm Guess
+              </button>
+            )}
+            {gameState === 'ROUND_REVEAL' && (
+              <button 
+                onClick={handleNextRound}
+                className="absolute -bottom-20 left-1/2 -translate-x-1/2 px-6 py-3 bg-blue-600 hover:bg-blue-700 active:scale-95 rounded-lg transition-all font-bold text-white shadow-lg whitespace-nowrap"
+              >
+                {currentRound < 5 ? 'Next Round' : 'See Final Score'}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Right Panel */}
+        <div className="w-1/4 h-full border-l border-gray-700 bg-gray-900">
+          <MatchHistory 
+            history={matchHistory} 
+            currentRound={currentRound} 
+          />
+        </div>
       </div>
-    </div>
+    )
   );
 };
 

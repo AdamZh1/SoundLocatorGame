@@ -2,12 +2,24 @@ import React from 'react';
 
 interface AudioControllerProps {
   onPlay: () => void;
+  onOpenCalibration: () => void;
   volume: number;
   onVolumeChange: (vol: number) => void;
-  disabled: boolean;
+  disabled?: boolean;
+  manualX: string;
+  manualZ: string;
+  onManualXChange: (val: string) => void;
+  onManualZChange: (val: string) => void;
+  selectedSound: string;
+  onSelectedSoundChange: (val: string) => void;
+  soundFiles: string[];
 }
 
-export const AudioController: React.FC<AudioControllerProps> = ({ onPlay, volume, onVolumeChange, disabled }) => {
+export const AudioController: React.FC<AudioControllerProps> = ({ 
+  onPlay, onOpenCalibration, volume, onVolumeChange, disabled, 
+  manualX, manualZ, onManualXChange, onManualZChange,
+  selectedSound, onSelectedSoundChange, soundFiles
+}) => {
   return (
     <div className="w-full h-full p-4 flex flex-col gap-4">
       <h2 className="text-xl font-bold">Audio Controller</h2>
@@ -18,12 +30,54 @@ export const AudioController: React.FC<AudioControllerProps> = ({ onPlay, volume
       >
         Play Audio
       </button>
+
+      <button 
+        onClick={onOpenCalibration}
+        className="bg-purple-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-purple-700 transition active:translate-y-[2px]"
+      >
+        Calibrate Audio
+      </button>
+
+      <div className="p-4 border border-gray-600 rounded-xl bg-gray-800">
+        <h3 className="text-sm font-semibold mb-2">Test Sound</h3>
+        <select 
+          value={selectedSound}
+          onChange={(e) => onSelectedSoundChange(e.target.value)}
+          className="w-full bg-gray-700 p-2 rounded text-sm text-white"
+        >
+          <option value="">Random</option>
+          {soundFiles.map(file => (
+            <option key={file} value={file}>{file}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="p-4 border border-gray-600 rounded-xl bg-gray-800">
+        <h3 className="text-sm font-semibold mb-2">Debug Coordinates</h3>
+        <div className="flex gap-2 mb-2">
+          <input 
+            type="number" 
+            placeholder="X" 
+            value={manualX}
+            onChange={(e) => onManualXChange(e.target.value)}
+            className="w-full bg-gray-700 p-2 rounded text-sm"
+          />
+          <input 
+            type="number" 
+            placeholder="Z" 
+            value={manualZ}
+            onChange={(e) => onManualZChange(e.target.value)}
+            className="w-full bg-gray-700 p-2 rounded text-sm"
+          />
+        </div>
+      </div>
+
       <div className="p-4 border border-gray-600 rounded-xl bg-gray-800">
         <label className="block mb-2 text-sm">Volume</label>
         <input 
           type="range" 
           min="0" 
-          max="1" 
+          max=".5" 
           step="0.01" 
           value={volume}
           onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
