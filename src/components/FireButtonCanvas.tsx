@@ -38,43 +38,45 @@ export const FireButtonCanvas = forwardRef<FireButtonCanvasHandle, FireButtonCan
 
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalCompositeOperation = 'screen';
 
       if (isAnimatingRef.current) {
         // Create new particles
         for (let i = 0; i < 5; i++) { 
           const angle = Math.random() * Math.PI * 2;
-          // Spawn near the center for a more organic feel
-          const radius = (Math.random() * canvas.width) / 4;
+          const radius = (Math.random() * (canvas.width / 4));
           
           particlesRef.current.push({
             x: canvas.width / 2 + Math.cos(angle) * radius,
             y: canvas.height / 2 + Math.sin(angle) * radius,
-            // Add wavy drift
-            vx: (Math.random() - 0.5) * 2,
-            vy: -Math.random() * 3 - 1, 
+            vx: (Math.random() - 0.5) * 0.3,
+            vy: -Math.random() * 0.8 - 0.4, 
             life: 1.0,
-            size: Math.random() * 5 + 2,
-            // Variable color
-            hue: 180 + Math.random() * 40
+            size: Math.random() * 10 + 5,
+            hue: 180 + Math.random() * 40,
+            phase: Math.random() * Math.PI * 2 // Random phase for side-to-side movement
           });
         }
 
         // Update and Draw
         particlesRef.current.forEach((p, i) => {
-          // Add some simple turbulence
-          p.x += p.vx + Math.sin(p.life * 10) * 0.5;
+          // Use phase to ensure swaying is centered and not biased
+          p.x += p.vx + Math.sin(p.life * 5 + p.phase) * 0.5;
           p.y += p.vy;
-          // Apply a randomized death factor to prevent uniform cutoff
-          p.life -= (0.015 + Math.random() * 0.02); 
+          // Faster decay as they reach higher up
+          p.life -= (0.004 + (canvas.height - p.y) / canvas.height * 0.005); 
 
           if (p.life <= 0) {
             particlesRef.current.splice(i, 1);
           } else {
+            // Radial gradient for a soft, flame-like look
+            const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * p.life);
+            gradient.addColorStop(0, `hsla(${p.hue}, 100%, 70%, ${p.life})`);
+            gradient.addColorStop(1, `hsla(${p.hue}, 100%, 70%, 0)`);
+            
             ctx.beginPath();
-            // Vary size decay so particles don't just vanish
-            ctx.arc(p.x, p.y, (p.size * p.life) * (0.5 + Math.random() * 0.5), 0, Math.PI * 2);
-            ctx.fillStyle = `hsla(${p.hue}, 100%, 60%, ${p.life})`;
+            ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+            ctx.fillStyle = gradient;
             ctx.fill();
           }
         });
