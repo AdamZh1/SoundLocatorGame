@@ -53,7 +53,7 @@ const App: React.FC = () => {
     const z = targetCoordinates.z;
     
     // Pick random sound
-    const soundToPlay = soundFiles[Math.floor(Math.random() * soundFiles.length)];
+    const soundToPlay = soundFiles[Math.floor(Math.random() * soundFiles.length)].file;
     
     console.log(`Playing ${soundToPlay} at (${x}, ${z})`);
     await playAudio(x, z, volume, soundToPlay, listenerDotRef, radarRef);

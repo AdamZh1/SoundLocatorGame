@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { audioFiles } from '../audioConfig';
 import { MiniRadar } from './MiniRadar';
 import { playUiSound, playHoverSound } from '../utils/audioHelper';
 
@@ -15,7 +14,7 @@ interface CalibrationModalProps {
   ) => Promise<void>;
   volume: number;
   onVolumeChange: (vol: number) => void;
-  soundFiles: string[];
+  soundFiles: { name: string; file: string }[];
   loaded: boolean;
 }
 
@@ -46,7 +45,7 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
     }
     
     // Pick selected sound or random
-    const soundToPlay = selectedSound !== '' ? selectedSound : audioFiles[Math.floor(Math.random() * audioFiles.length)];
+    const soundToPlay = selectedSound !== '' ? selectedSound : soundFiles[Math.floor(Math.random() * soundFiles.length)].file;
     setIsPlaying(true);
     await playAudio(x, z, volume, soundToPlay, { current: null }, { current: null });
     setIsPlaying(false);
@@ -116,8 +115,8 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
             className="w-full bg-gray-700 p-2 rounded text-sm text-white"
           >
             <option value="">Random</option>
-            {soundFiles.map(file => (
-              <option key={file} value={file}>{file}</option>
+            {soundFiles.map(item => (
+              <option key={item.file} value={item.file}>{item.name}</option>
             ))}
           </select>
         </div>

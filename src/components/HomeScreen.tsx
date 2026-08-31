@@ -1,5 +1,5 @@
 import React from 'react';
-import { playUiSound } from '../utils/audioHelper';
+import { playUiSound, playHoverSound } from '../utils/audioHelper';
 
 interface HomeScreenProps {
   onStartGame: () => void;
@@ -17,6 +17,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
         <div className="btn-primary-border mx-auto size-[82px]">
           <button
             onClick={() => { playUiSound(); onStartGame(); }}
+            onMouseEnter={playHoverSound}
             className="btn-circle bg-black hover:bg-gray-900 text-white"
           >
             Start
