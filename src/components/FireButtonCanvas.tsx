@@ -10,14 +10,12 @@ export const FireButtonCanvas = forwardRef<FireButtonCanvasHandle, FireButtonCan
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<any[]>([]);
   const isAnimatingRef = useRef(false);
+  const opacityRef = useRef(0);
   const animationFrameRef = useRef<number>(0);
 
   useImperativeHandle(ref, () => ({
     setHovered: (hovered: boolean) => {
       isAnimatingRef.current = hovered;
-      if (!hovered) {
-        particlesRef.current = []; // Clear particles on stop
-      }
     }
   }));
 
@@ -40,38 +38,46 @@ export const FireButtonCanvas = forwardRef<FireButtonCanvasHandle, FireButtonCan
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.globalCompositeOperation = 'screen';
 
+      // Update global opacity based on hover state
       if (isAnimatingRef.current) {
-        // Create new particles
-        for (let i = 0; i < 5; i++) { 
-          const angle = Math.random() * Math.PI * 2;
-          const radius = (Math.random() * (canvas.width / 4));
-          
-          particlesRef.current.push({
-            x: canvas.width / 2 + Math.cos(angle) * radius,
-            y: canvas.height / 2 + Math.sin(angle) * radius,
-            vx: (Math.random() - 0.5) * 0.3,
-            vy: -Math.random() * 0.8 - 0.4, 
-            life: 1.0,
-            size: Math.random() * 10 + 5,
-            hue: 180 + Math.random() * 40,
-            phase: Math.random() * Math.PI * 2 // Random phase for side-to-side movement
-          });
+        opacityRef.current = Math.min(1, opacityRef.current + 0.05);
+      } else {
+        opacityRef.current = Math.max(0, opacityRef.current - 0.02);
+      }
+
+      if (opacityRef.current > 0 || isAnimatingRef.current) {
+        // Create new particles only when hovered
+        if (isAnimatingRef.current) {
+          for (let i = 0; i < 5; i++) { 
+            const angle = Math.random() * Math.PI * 2;
+            const radius = (Math.random() * (canvas.width / 4));
+            
+            particlesRef.current.push({
+              x: canvas.width / 2 + Math.cos(angle) * radius,
+              y: canvas.height / 2 + Math.sin(angle) * radius,
+              vx: (Math.random() - 0.5) * 0.3,
+              vy: -Math.random() * 0.8 - 0.4, 
+              life: 1.0,
+              size: Math.random() * 10 + 5,
+              hue: 180 + Math.random() * 40,
+              phase: Math.random() * Math.PI * 2
+            });
+          }
         }
 
-        // Update and Draw
+        // Update and Draw particles
         particlesRef.current.forEach((p, i) => {
-          // Use phase to ensure swaying is centered and not biased
           p.x += p.vx + Math.sin(p.life * 5 + p.phase) * 0.5;
           p.y += p.vy;
-          // Faster decay as they reach higher up
           p.life -= (0.004 + (canvas.height - p.y) / canvas.height * 0.005); 
 
           if (p.life <= 0) {
             particlesRef.current.splice(i, 1);
           } else {
-            // Radial gradient for a soft, flame-like look
+            // Radial gradient
             const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * p.life);
-            gradient.addColorStop(0, `hsla(${p.hue}, 100%, 70%, ${p.life})`);
+            const alpha = p.life * opacityRef.current;
+            gradient.addColorStop(0, `hsla(${p.hue}, 100%, 70%, ${alpha})`);
             gradient.addColorStop(1, `hsla(${p.hue}, 100%, 70%, 0)`);
             
             ctx.beginPath();

@@ -107,5 +107,16 @@
 - Resolved layout conflicts caused by mixing Tailwind classes and absolute positioning.
 - Fixed canvas initialization and React strict mode issues to ensure stable animation.
 
+## Summary of Work (August 31, 2026)
+- Refactored `audioConfig.ts` to support display names for audio files, updating `CalibrationModal` and `useSpatialAudio` accordingly.
+- Added `playHoverSound` to the homepage "Start" button.
+- Implemented a custom canvas-based, procedural blue-fire effect on the homepage "Start" button hover, featuring smooth fade-in/out and organic flame motion.
+
+## Bugs Fixed
+- Resolved Type-safety errors caused by incorrect import syntax in `FireButtonCanvas` and `HomeScreen`.
+- Fixed canvas rendering and particle visibility issues in `FireButtonCanvas`.
+- Corrected the leftward bias in the flame particle animation using phase-based randomization.
+- Resolved uniform particle cutoff at the top of the flame effect.
+
 ## Next Steps
-- Continue fixing and refining the liquid button water animation.
+- None. UI sound effects implementation complete.
