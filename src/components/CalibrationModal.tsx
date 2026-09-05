@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { audioFiles } from '../audioConfig';
 import { MiniRadar } from './MiniRadar';
+import { playUiSound, playHoverSound } from '../utils/audioHelper';
 
 interface CalibrationModalProps {
   onClose: () => void;
@@ -14,20 +14,19 @@ interface CalibrationModalProps {
   ) => Promise<void>;
   volume: number;
   onVolumeChange: (vol: number) => void;
-  onSelectedSoundChange: (val: string) => void;
-  selectedSound: string;
-  soundFiles: string[];
+  soundFiles: { name: string; file: string }[];
   loaded: boolean;
 }
 
 export const CalibrationModal: React.FC<CalibrationModalProps> = ({ 
-  onClose, playAudio, volume, onVolumeChange, selectedSound, onSelectedSoundChange, soundFiles, loaded 
+  onClose, playAudio, volume, onVolumeChange, soundFiles, loaded 
 }) => {
   const [mode, setMode] = useState<'radar' | 'selection'>('selection');
   const [selectedDistance, setSelectedDistance] = useState(15);
   const [selectedDirection, setSelectedDirection] = useState<'forward' | 'backward' | 'left' | 'right'>('forward');
   const [targetPos, setTargetPos] = useState({ x: 0, z: 0 });
   const [isPlaying, setIsPlaying] = useState(false);
+  const [selectedSound, setSelectedSound] = useState('');
   const distances = [5, 15, 25, 35];
   
   const handlePlay = async () => {
@@ -45,7 +44,8 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
       }
     }
     
-    const soundToPlay = selectedSound !== '' ? selectedSound : audioFiles[0];
+    // Pick selected sound or random
+    const soundToPlay = selectedSound !== '' ? selectedSound : soundFiles[Math.floor(Math.random() * soundFiles.length)].file;
     setIsPlaying(true);
     await playAudio(x, z, volume, soundToPlay, { current: null }, { current: null });
     setIsPlaying(false);
@@ -53,21 +53,23 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-gray-900/80 z-50 flex justify-center items-center">
-      <div className="bg-gray-800 p-6 rounded-xl border border-gray-600 w-[500px] max-h-[90vh] overflow-y-auto">
-        <h2 className="text-xl font-bold mb-4">Calibration</h2>
+      <div className="bg-black p-6 rounded-xl border border-gray-600 w-[500px] max-h-[90vh] overflow-y-auto">
+        <h2 className="text-3xl font-bold mb-6 uppercase tracking-widest text-center text-gray-400">Calibration</h2>
         
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-6 justify-center">
           <button 
             onClick={() => setMode('selection')}
-            className={`flex-1 py-2 rounded font-semibold ${mode === 'selection' ? 'bg-blue-600' : 'bg-gray-700'}`}
+            onMouseEnter={playHoverSound}
+            className={`btn-circle ${mode === 'selection' ? 'bg-blue-600' : 'bg-gray-700'}`}
           >
-            Selection Mode
+            Select
           </button>
           <button 
             onClick={() => setMode('radar')}
-            className={`flex-1 py-2 rounded font-semibold ${mode === 'radar' ? 'bg-blue-600' : 'bg-gray-700'}`}
+            onMouseEnter={playHoverSound}
+            className={`btn-circle ${mode === 'radar' ? 'bg-blue-600' : 'bg-gray-700'}`}
           >
-            Radar Mode
+            Radar
           </button>
         </div>
 
@@ -76,49 +78,54 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
         ) : (
           <div className="mb-6">
             <h3 className="text-sm font-semibold mb-2">Distance ({selectedDistance}m)</h3>
-            <div className="flex gap-2 mb-4">
+            <div className="flex gap-2 mb-4 justify-center">
               {distances.map(d => (
                 <button 
                   key={d} 
                   onClick={() => setSelectedDistance(d)}
-                  className={`px-3 py-1 rounded ${selectedDistance === d ? 'bg-blue-600' : 'bg-gray-700'}`}
+                  onMouseEnter={playHoverSound}
+                  className={`btn-circle ${selectedDistance === d ? 'bg-blue-600' : 'bg-gray-700'}`}
                 >
                   {d}m
                 </button>
               ))}
             </div>
 
-            <h3 className="text-sm font-semibold mb-2">Direction</h3>
-            <div className="flex gap-2">
+            <h3 className="text-sm font-semibold mb-2 text-center">Direction</h3>
+            <div className="flex gap-2 justify-center">
               {(['forward', 'backward', 'left', 'right'] as const).map(dir => (
                 <button 
                   key={dir} 
                   onClick={() => setSelectedDirection(dir)}
-                  className={`capitalize px-3 py-1 rounded ${selectedDirection === dir ? 'bg-blue-600' : 'bg-gray-700'}`}
+                  onMouseEnter={playHoverSound}
+                  className={`btn-circle ${selectedDirection === dir ? 'bg-blue-600' : 'bg-gray-700'}`}
                 >
-                  {dir}
+                  {dir.charAt(0).toUpperCase()}
                 </button>
               ))}
             </div>
           </div>
         )}
 
-        <div className="mb-6 p-4 border border-gray-600 rounded-xl bg-gray-900">
-          <h3 className="text-sm font-semibold mb-2">Test Sound</h3>
+        <div className="mb-6 p-4 border border-gray-600 rounded-xl bg-black">
+          <label className="block mb-2 text-sm text-gray-400">Select Sound</label>
           <select 
             value={selectedSound}
-            onChange={(e) => onSelectedSoundChange(e.target.value)}
+            onChange={(e) => setSelectedSound(e.target.value)}
             className="w-full bg-gray-700 p-2 rounded text-sm text-white"
           >
             <option value="">Random</option>
-            {soundFiles.map(file => (
-              <option key={file} value={file}>{file}</option>
+            {soundFiles.map(item => (
+              <option key={item.file} value={item.file}>{item.name}</option>
             ))}
           </select>
         </div>
 
-        <div className="mb-6 p-4 border border-gray-600 rounded-xl bg-gray-900">
-          <label className="block mb-2 text-sm">Volume ({volume.toFixed(3)})</label>
+        <div className="mb-6 p-2">
+          <div className="flex justify-between items-center mb-2">
+            <label className="text-sm lowercase tracking-tighter text-gray-400">volume ({volume.toFixed(3)})</label>
+            <span className="text-xs font-mono text-gray-500">{(volume * 200).toFixed(0)}%</span>
+          </div>
           <input 
             type="range" 
             min="0" 
@@ -126,19 +133,30 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
             step="0.01" 
             value={volume}
             onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
-            className="w-full h-[6px] bg-gray-700 rounded-full appearance-none cursor-pointer"
+            className="w-full appearance-none bg-black h-2 rounded-full cursor-pointer 
+              [&::-webkit-slider-runnable-track]:bg-gradient-to-r [&::-webkit-slider-runnable-track]:from-cyan-500 [&::-webkit-slider-runnable-track]:to-purple-500 [&::-webkit-slider-runnable-track]:rounded-full
+              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:active:scale-125"
           />
         </div>
 
-        <button 
-          onClick={handlePlay}
-          disabled={!loaded || isPlaying}
-          className="w-full bg-blue-600 text-white py-2 rounded mb-2 font-bold hover:bg-blue-700 transition disabled:bg-gray-500"
-        >
-          {isPlaying ? 'Playing...' : !loaded ? 'Loading...' : mode === 'radar' ? `Play Audio at (${Math.round(targetPos.x)}, ${Math.round(targetPos.z)})` : 'Play Audio'}
-        </button>
+        <div className="btn-primary-border mb-2">
+          <button 
+            onClick={handlePlay}
+            onMouseEnter={playHoverSound}
+            disabled={!loaded || isPlaying}
+            className="btn-circle bg-gray-900 w-full rounded-full"
+          >
+            {isPlaying ? 'Playing...' : !loaded ? 'Loading...' : 'Play'}
+          </button>
+        </div>
 
-        <button onClick={onClose} className="w-full bg-red-600 text-white py-2 rounded">Close</button>
+        <button 
+            onClick={() => { playUiSound(); onClose(); }} 
+            onMouseEnter={playHoverSound}
+            className="btn-circle bg-red-600 text-white w-full rounded-full"
+        >
+            Close
+        </button>
       </div>
     </div>
   );

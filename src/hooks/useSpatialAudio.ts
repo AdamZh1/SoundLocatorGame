@@ -17,7 +17,7 @@ export const useSpatialAudio = () => {
     const loadBuffers = async () => {
       // Temporary context just to decode audio data without playing
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      for (const file of audioFiles) {
+      for (const { file } of audioFiles) {
         const response = await fetch(`/game_audio_comp/${file}`);
         if (!response.ok) continue;
         const arrayBuffer = await response.arrayBuffer();

@@ -10,7 +10,7 @@ export const ScorePopup: React.FC<ScorePopupProps> = ({ score }) => {
   useEffect(() => {
     // Play UI sound
     const audio = new Audio('/ui_audio/jingles_STEEL10.ogg');
-    audio.volume = 0.3; // Adjust volume as needed
+    audio.volume = 0.2; // Adjust volume as needed
     audio.play().catch(e => console.error("Audio playback failed:", e));
 
     const duration = 1000; // 1 second

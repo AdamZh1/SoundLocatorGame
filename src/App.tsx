@@ -7,6 +7,7 @@ import HomeScreen from './components/HomeScreen';
 import EndScreen from './components/EndScreen';
 import { ScorePopup } from './components/ScorePopup';
 import { useSpatialAudio } from './hooks/useSpatialAudio';
+import { playUiSound, playHoverSound } from './utils/audioHelper';
 
 const App: React.FC = () => {
   const listenerDotRef = useRef<HTMLDivElement>(null);
@@ -20,9 +21,6 @@ const App: React.FC = () => {
   const [targetCoordinates, setTargetCoordinates] = useState({ x: 0, z: 0 });
   const [pendingGuess, setPendingGuess] = useState<{ x: number; z: number } | null>(null);
   const [finalGuess, setFinalGuess] = useState<{ x: number; z: number } | null>(null);
-  const [manualX, setManualX] = useState('');
-  const [manualZ, setManualZ] = useState('');
-  const [selectedSound, setSelectedSound] = useState('');
 
   const { playAudio, setVolume: setAudioVolume, initAudio, soundFiles, loaded } = useSpatialAudio();
 
@@ -51,11 +49,11 @@ const App: React.FC = () => {
 
   const handlePlay = async () => {
     setGameState('AUDIO_PLAYING');
-    const x = manualX !== '' ? parseFloat(manualX) : targetCoordinates.x;
-    const z = manualZ !== '' ? parseFloat(manualZ) : targetCoordinates.z;
+    const x = targetCoordinates.x;
+    const z = targetCoordinates.z;
     
-    // Select sound: use dropdown if set, otherwise pick random
-    const soundToPlay = selectedSound !== '' ? selectedSound : soundFiles[Math.floor(Math.random() * soundFiles.length)];
+    // Pick random sound
+    const soundToPlay = soundFiles[Math.floor(Math.random() * soundFiles.length)].file;
     
     console.log(`Playing ${soundToPlay} at (${x}, ${z})`);
     await playAudio(x, z, volume, soundToPlay, listenerDotRef, radarRef);
@@ -71,7 +69,7 @@ const App: React.FC = () => {
 
   const handleGuessSubmit = (x: number, z: number) => {
     const distance = Math.sqrt(Math.pow(targetCoordinates.x - x, 2) + Math.pow(targetCoordinates.z - z, 2));
-    const score = Math.max(0, Math.round(10000 * (1 - Math.pow(distance / 40, 2))));
+    const score = Math.max(0, Math.round(10000 * (1 - Math.pow(distance / 30, 2))));
     
     setFinalGuess({ x, z });
     setMatchHistory([...matchHistory, { round: currentRound, score, error: Math.round(distance), guess: { x, z }, target: targetCoordinates }]);
@@ -104,22 +102,15 @@ const App: React.FC = () => {
     appStage === 'HOME' ? (
       <HomeScreen onStartGame={handleStartGame} />
     ) : (
-      <div className="flex h-screen bg-gray-900 text-white w-full">
+      <div className="flex h-screen bg-black text-white w-full">
         {/* Left Panel */}
-        <div className="w-1/4 h-full border-r border-gray-700 bg-gray-900">
+        <div className="w-1/4 h-full border-r border-gray-700 bg-black">
           <AudioController 
             onPlay={handlePlay} 
             onOpenCalibration={() => setIsCalibrationOpen(true)}
             volume={volume} 
             onVolumeChange={handleVolumeChange}
             disabled={gameState !== 'INIT' || !loaded}
-            manualX={manualX}
-            manualZ={manualZ}
-            onManualXChange={setManualX}
-            onManualZChange={setManualZ}
-            selectedSound={selectedSound}
-            onSelectedSoundChange={setSelectedSound}
-            soundFiles={soundFiles}
           />
         </div>
 
@@ -129,8 +120,6 @@ const App: React.FC = () => {
             playAudio={playAudio}
             volume={volume}
             onVolumeChange={handleVolumeChange}
-            selectedSound={selectedSound}
-            onSelectedSoundChange={setSelectedSound}
             soundFiles={soundFiles}
             loaded={loaded}
           />
@@ -155,27 +144,33 @@ const App: React.FC = () => {
               <ScorePopup score={matchHistory[matchHistory.length - 1].score} />
             )}
             {gameState === 'GUESSING' && (
-              <button 
-                onClick={handleConfirmGuess}
-                disabled={!pendingGuess}
-                className="absolute -bottom-20 left-1/2 -translate-x-1/2 px-6 py-3 bg-blue-600 hover:bg-blue-700 active:scale-95 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg transition-all font-bold text-white shadow-lg whitespace-nowrap"
-              >
-                Confirm Guess
-              </button>
+              <div className="btn-primary-border absolute -bottom-24">
+                <button 
+                  onClick={handleConfirmGuess}
+                  onMouseEnter={playHoverSound}
+                  disabled={!pendingGuess}
+                  className="btn-circle bg-black text-white disabled:opacity-50"
+                >
+                  Confirm
+                </button>
+              </div>
             )}
             {gameState === 'ROUND_REVEAL' && (
-              <button 
-                onClick={handleNextRound}
-                className="absolute -bottom-20 left-1/2 -translate-x-1/2 px-6 py-3 bg-blue-600 hover:bg-blue-700 active:scale-95 rounded-lg transition-all font-bold text-white shadow-lg whitespace-nowrap"
-              >
-                {currentRound < 5 ? 'Next Round' : 'See Final Score'}
-              </button>
+              <div className="btn-primary-border absolute -bottom-24">
+                <button 
+                  onClick={() => { playUiSound(); handleNextRound(); }}
+                  onMouseEnter={playHoverSound}
+                  className="btn-circle bg-black text-white"
+                >
+                  {currentRound < 5 ? 'Next' : 'Finish'}
+                </button>
+              </div>
             )}
           </div>
         </div>
 
         {/* Right Panel */}
-        <div className="w-1/4 h-full border-l border-gray-700 bg-gray-900">
+        <div className="w-1/4 h-full border-l border-gray-700 bg-black">
           <MatchHistory 
             history={matchHistory} 
             currentRound={currentRound} 

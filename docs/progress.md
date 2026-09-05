@@ -60,18 +60,11 @@
 ## Bugs / Known Issues
 - Intermittent initial audio glitch: sounds briefly play at the origin `(0, 0, 0)` on the very first play, specifically in the calibration mode.
 
-## Next Steps
-- Investigate and resolve the intermittent initial audio glitch (sounds playing at origin on first play).
-
 ## Summary of Work (August 21, 2026 - Continued)
 - Verified that the new "Home Screen" entry point successfully resolves the intermittent initial audio origin-glitch by ensuring `AudioContext` is fully initialized and resumed via user interaction before game start.
 
 ## Bugs Fixed
 - Resolved the intermittent initial audio glitch (sounds playing at `(0, 0, 0)` on the first play).
-
-## Next Steps
-- Implement quality-of-life improvements.
-- Enhance visual aesthetics using Tailwind CSS.
 
 ## Summary of Work (August 23, 2026)
 - Implemented interactive End Screen with scrollable, multi-accordion round summaries using Tailwind CSS.
@@ -95,6 +88,35 @@
 ## Bugs Fixed
 - Adjusted animation keyframes to prevent overlapping/clipping and achieve desired positioning.
 
-## Next Steps
-- Implement further UI enhancements and refinements.
+## Summary of Work (August 29, 2026)
+- Implemented "Pure Black Void" minimalist UI theme across the entire application.
+- Added and refined a minimalist, breathing monochromatic underglow for the `RadarCanvas`.
+- Adjusted the scoring system formula to be stricter (decay divisor 40 -> 30).
+- Unified UI button interaction sounds to `jingles_NES10.ogg` using a new `audioHelper` utility.
+- Restored `jingles_STEEL10.ogg` specifically for the `ScorePopup`.
 
+## Bugs Fixed
+- Resolved UI gradient border offset issues on the Start button by adjusting container sizing and centering.
+- Corrected audio playback assignment for the `ScorePopup`.
+
+## Summary of Work (August 29, 2026 - Continued)
+- Added hover sound effects (`mouserelease1.ogg`) to UI buttons.
+- Implemented high-performance, stateless 2D liquid physics simulation for the 'Play Again' button.
+
+## Bugs Fixed
+- Resolved layout conflicts caused by mixing Tailwind classes and absolute positioning.
+- Fixed canvas initialization and React strict mode issues to ensure stable animation.
+
+## Summary of Work (August 31, 2026)
+- Refactored `audioConfig.ts` to support display names for audio files, updating `CalibrationModal` and `useSpatialAudio` accordingly.
+- Added `playHoverSound` to the homepage "Start" button.
+- Implemented a custom canvas-based, procedural blue-fire effect on the homepage "Start" button hover, featuring smooth fade-in/out and organic flame motion.
+
+## Bugs Fixed
+- Resolved Type-safety errors caused by incorrect import syntax in `FireButtonCanvas` and `HomeScreen`.
+- Fixed canvas rendering and particle visibility issues in `FireButtonCanvas`.
+- Corrected the leftward bias in the flame particle animation using phase-based randomization.
+- Resolved uniform particle cutoff at the top of the flame effect.
+
+## Next Steps
+- None. UI sound effects implementation complete.

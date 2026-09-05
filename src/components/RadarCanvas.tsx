@@ -117,10 +117,15 @@ export const RadarCanvas: React.FC<RadarCanvasProps> = ({ onPendingGuess, gameSt
   }, [isDragging]);
 
   return (
-    <div className="w-full h-full flex justify-center items-center">
+      <div className="w-full h-full flex justify-center items-center relative">
+        {/* Underglow */}
+        <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none">
+          <div className="size-full rounded-full bg-gradient-to-br from-zinc-600 via-zinc-700 to-black opacity-75 blur-[80px] animate-slow-breathe"></div>
+        </div>
+
         <div 
         ref={radarRef} 
-        className="w-[400px] h-[400px] rounded-full border-2 border-white relative bg-gray-900 cursor-crosshair"
+        className="w-[400px] h-[400px] rounded-full border border-white/10 relative bg-black cursor-crosshair z-10"
         onClick={handleCanvasClick}
       >
 
@@ -169,13 +174,13 @@ export const RadarCanvas: React.FC<RadarCanvasProps> = ({ onPendingGuess, gameSt
         )}
 
         {/* Rings */}
-        <div className="absolute top-1/2 left-1/2 w-[100px] h-[100px] border border-dashed border-gray-500 rounded-full translate-x-[-50%] translate-y-[-50%]" />
+        <div className="absolute top-1/2 left-1/2 w-[100px] h-[100px] border border-white/10 rounded-full translate-x-[-50%] translate-y-[-50%]" />
         <div className="absolute text-[10px] text-gray-500 top-[calc(50%-55px)] left-1/2 translate-x-[-50%]">10m</div>
 
-        <div className="absolute top-1/2 left-1/2 w-[200px] h-[200px] border border-dashed border-gray-500 rounded-full translate-x-[-50%] translate-y-[-50%]" />
+        <div className="absolute top-1/2 left-1/2 w-[200px] h-[200px] border border-white/10 rounded-full translate-x-[-50%] translate-y-[-50%]" />
         <div className="absolute text-[10px] text-gray-500 top-[calc(50%-105px)] left-1/2 translate-x-[-50%]">20m</div>
 
-        <div className="absolute top-1/2 left-1/2 w-[300px] h-[300px] border border-dashed border-gray-500 rounded-full translate-x-[-50%] translate-y-[-50%]" />
+        <div className="absolute top-1/2 left-1/2 w-[300px] h-[300px] border border-white/10 rounded-full translate-x-[-50%] translate-y-[-50%]" />
         <div className="absolute text-[10px] text-gray-500 top-[calc(50%-155px)] left-1/2 translate-x-[-50%]">30m</div>
       </div>
     </div>
