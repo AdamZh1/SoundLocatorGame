@@ -1,75 +1,45 @@
-# React + TypeScript + Vite
+# SoundLocator: Spatial Audio Training Tool
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A high-performance web simulation designed to train spatial audio localization. Developed to help players improve their ability to pinpoint audio sources in 3D environments, useful for competitive FPS games. 
 
-Currently, two official plugins are available:
+## Technical Overview
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+SoundLocator is a React-based simulation that directly manipulates native HRTF panning and frequency filtering to create realistic spatial audio without relying on heavy 3D graphics.
 
-## React Compiler
+### Core Technologies
+* **Frontend:** React (Vite), TypeScript, Tailwind CSS
+* **Audio Engine:** Native Web Audio API
+* **Styling/Animations:** Tailwind CSS, custom Canvas-based procedural effects
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Engineering Highlights
+* **Low-Latency Spatialization:** Leverages `PannerNode` with HRTF panning models and inverse distance attenuation for realistic 3D sound positioning.
+* **Separation of Concerns:** Implemented a strict architectural split where high-frequency audio logic resides outside of the React render cycle (via `useRef`), ensuring no jitter during playback.
+* **Performance Optimization:** Utilizes `AnalyserNode` for real-time audio visualization synced with React state updates.
+* **Procedural UI:** Features custom Canvas-based particle effects for high-fidelity UI feedback.
 
-## Expanding the ESLint configuration
+## Key Features
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+* **5-Round Localization Loop:** Progressive difficulty assessment with automated score tracking.
+* **Interactive Radar:** A tactical 2D canvas for coordinate submission with visual feedback.
+* **Calibration Mode:** Dedicated environment for testing spatial audio settings and volume parameters.
+* **Minimalist Aesthetics:** "Pure Black Void" dark-mode theme for clean look and maximum focus
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Getting Started
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Prerequisites
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+* Node.js (v18+ recommended)
+* npm or yarn
 
-```
+### Installation
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+1. Clone the repository:
+   `git clone <repository-url>`
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+2. Install dependencies:
+   `npm install`
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+3. Run the development server:
+   `npm run dev`
 
-```
+The application will be available at `http://localhost:5173`.
