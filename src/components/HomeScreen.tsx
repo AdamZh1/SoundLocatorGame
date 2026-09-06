@@ -36,7 +36,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
         </p>
         <div 
           className="btn-primary-border mx-auto size-[82px] relative flex items-center justify-center rounded-full"
-          onMouseEnter={() => { fireRef.current?.setHovered(true); startFireSound(); }}
+          onMouseEnter={() => { fireRef.current?.setHovered(true); startFireSound(); playHoverSound(); }}
           onMouseLeave={() => { fireRef.current?.setHovered(false); stopFireSound(); }}
         >
           {/* Canvas container extended to allow flames to rise above the button */}
