@@ -2,6 +2,10 @@
 
 A high-performance web simulation designed to train spatial audio localization. Developed to help players improve their ability to pinpoint audio sources in 3D environments, useful for competitive FPS games. 
 
+## Link:
+
+https://sound-locator-game-nine.vercel.app/
+
 ## Technical Overview
 
 SoundLocator is a React-based simulation that directly manipulates native HRTF panning and frequency filtering to create realistic spatial audio without relying on heavy 3D graphics.
