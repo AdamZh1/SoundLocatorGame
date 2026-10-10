@@ -1,25 +1,26 @@
 import React from 'react';
+import type { Vec2 } from '../types';
+import { metersToPx } from '../utils/radarMath';
 
 interface ResultRadarProps {
-  target: { x: number; z: number };
-  guess: { x: number; z: number };
+  target: Vec2;
+  guess: Vec2;
 }
 
 export const ResultRadar: React.FC<ResultRadarProps> = ({ target, guess }) => {
   // Use a smaller size (e.g., 200px) for the mini radar
   const size = 200;
-  const maxMeters = 40;
+  const radiusPx = size / 2;
 
-  const getPos = (pos: { x: number; z: number }) => ({
-    // Map maxMeters (40) to radius (size/2 = 100px)
-    left: `calc(50% + ${(pos.x / maxMeters) * (size / 2)}px)`,
-    top: `calc(50% + ${(pos.z / maxMeters) * (size / 2)}px)`
+  const getPos = (pos: Vec2) => ({
+    left: `calc(50% + ${metersToPx(pos.x, radiusPx)}px)`,
+    top: `calc(50% + ${metersToPx(pos.z, radiusPx)}px)`
   });
 
   // Helper for line coordinates to match point mapping
-  const getLinePos = (pos: { x: number; z: number }) => ({
-    x: `calc(50% + ${(pos.x / maxMeters) * (size / 2)}px)`,
-    y: `calc(50% + ${(pos.z / maxMeters) * (size / 2)}px)`
+  const getLinePos = (pos: Vec2) => ({
+    x: `calc(50% + ${metersToPx(pos.x, radiusPx)}px)`,
+    y: `calc(50% + ${metersToPx(pos.z, radiusPx)}px)`
   });
 
   const targetLine = getLinePos(target);

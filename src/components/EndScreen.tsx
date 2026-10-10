@@ -2,9 +2,11 @@ import React, { useState, useRef } from 'react';
 import { ResultRadar } from './ResultRadar';
 import { playUiSound, playHoverSound } from '../utils/audioHelper';
 import { LiquidButtonCanvas, type LiquidButtonCanvasHandle } from './LiquidButtonCanvas';
+import type { RoundResult } from '../types';
+import { MAX_MATCH_SCORE } from '../gameConfig';
 
 interface EndScreenProps {
-  history: { round: number; score: number; error: number; guess: { x: number; z: number }; target: { x: number; z: number } }[];
+  history: RoundResult[];
   onPlayAgain: () => void;
 }
 
@@ -33,7 +35,7 @@ const EndScreen: React.FC<EndScreenProps> = ({ history, onPlayAgain }) => {
         
         <div className="mb-6">
           <p className="text-gray-500">Final Score</p>
-          <p className="text-5xl font-bold text-blue-500">{totalScore} / 50000</p>
+          <p className="text-5xl font-bold text-blue-500">{totalScore} / {MAX_MATCH_SCORE}</p>
         </div>
 
         <div className="text-left mb-8 border-t border-gray-800 pt-4">
@@ -47,7 +49,7 @@ const EndScreen: React.FC<EndScreenProps> = ({ history, onPlayAgain }) => {
                   onMouseEnter={playHoverSound}
                 >
                   <span>Round {item.round}</span>
-                  <span className="font-mono text-gray-400">{item.score} pts - {item.error}m</span>
+                  <span className="font-mono text-gray-400">{item.score} pts - {Math.round(item.error)}m</span>
                 </button>
                 <div
                   ref={(el) => { contentRefs.current[item.round] = el; }}

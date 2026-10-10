@@ -1,20 +1,14 @@
 import React, { useState } from 'react';
 import { MiniRadar } from './MiniRadar';
 import { playUiSound, playHoverSound } from '../utils/audioHelper';
+import type { SoundFile } from '../types';
 
 interface CalibrationModalProps {
   onClose: () => void;
-  playAudio: (
-    x: number, 
-    z: number, 
-    volume: number, 
-    soundName: string, 
-    dotRef: React.RefObject<HTMLDivElement | null>, 
-    ringRef: React.RefObject<HTMLDivElement | null>
-  ) => Promise<void>;
+  playAudio: (x: number, z: number, soundName: string) => Promise<void>;
   volume: number;
   onVolumeChange: (vol: number) => void;
-  soundFiles: { name: string; file: string }[];
+  soundFiles: SoundFile[];
   loaded: boolean;
 }
 
@@ -47,7 +41,7 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
     // Pick selected sound or random
     const soundToPlay = selectedSound !== '' ? selectedSound : soundFiles[Math.floor(Math.random() * soundFiles.length)].file;
     setIsPlaying(true);
-    await playAudio(x, z, volume, soundToPlay, { current: null }, { current: null });
+    await playAudio(x, z, soundToPlay);
     setIsPlaying(false);
   };
 

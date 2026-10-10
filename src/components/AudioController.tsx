@@ -7,10 +7,11 @@ interface AudioControllerProps {
   volume: number;
   onVolumeChange: (vol: number) => void;
   disabled?: boolean;
+  loadError?: string | null;
 }
 
-export const AudioController: React.FC<AudioControllerProps> = ({ 
-  onPlay, onOpenCalibration, volume, onVolumeChange, disabled
+export const AudioController: React.FC<AudioControllerProps> = ({
+  onPlay, onOpenCalibration, volume, onVolumeChange, disabled, loadError
 }) => {
   return (
     <div className="w-full h-full p-4 flex flex-col gap-4 items-center">
@@ -35,6 +36,8 @@ export const AudioController: React.FC<AudioControllerProps> = ({
           Setup
         </button>
       </div>
+
+      {loadError && <p className="text-xs text-red-400 text-center">{loadError}</p>}
 
       <div className="w-full p-2">
         <div className="flex justify-between items-center mb-2">

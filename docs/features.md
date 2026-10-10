@@ -47,4 +47,4 @@ The application must strictly cycle through these states per round:
 
 ### Web Audio API Guardrails
 *   The `AudioContext` must only initialize upon the very first user interaction (the first click of the Play button) to comply with browser autoplay policies.
-*   The sound spatialization must utilize `panningModel = 'HRTF'` and an `inverse` distance model to mathematically process the X, Y, Z coordinates.
+*   The sound spatialization must utilize `panningModel = 'HRTF'` to process the X, Y, Z coordinates. Distance falloff uses a manual attenuation curve instead of the panner's distance model (originally `inverse`; changed July 29, 2026, see `CLAUDE.md`).

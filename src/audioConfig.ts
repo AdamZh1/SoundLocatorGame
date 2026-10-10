@@ -1,4 +1,6 @@
-export const audioFiles = [
+import type { SoundFile } from './types';
+
+export const audioFiles: SoundFile[] = [
   { name: 'Belt', file: 'clothBelt.ogg' },
   { name: 'Creak', file: 'creak3.ogg' },
   { name: 'Door', file: 'doorOpen_1.ogg' },

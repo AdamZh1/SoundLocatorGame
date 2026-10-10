@@ -17,8 +17,10 @@
 * **State Management:** Use standard React `useState`. State should be kept as localized as possible. If global state is needed for the 5-round loop, lift it to `App.tsx`, but do not over-engineer with external libraries.
 * **Web Audio API Math:**
     * Always use `panningModel = 'HRTF'` for 3D spatialization.
-    * Always use the `inverse` distance model to calculate volume falloff.
-    * Assume a right-hand Cartesian coordinate system where the listener is permanently fixed at `(0, 0, 0)`.
+    * Distance falloff is done **manually**, not by the panner. The `PannerNode` uses `distanceModel = 'linear'` with `rolloffFactor = 0` (so it only handles direction), and volume is attenuated by gain: `attenuation = max(0, 1 - (distance / 50)^0.75)`. Do NOT switch back to the `inverse` model; it was replaced on purpose (see `docs/progress.md`, July 29) because it made distance too hard to hear.
+    * Assume a right-hand Cartesian coordinate system where the listener is permanently fixed at `(0, 0, 0)`, facing `-Z`. On the radar, `+X` is right and `+Z` is down (behind the listener).
+* **Scoring:** Per round, `score = max(0, round(10000 * (1 - (error / 30)^2)))`, where `error` is the Euclidean distance in meters between guess and target. 5 rounds, max 50,000.
+* **Docs:** `docs/architecture.md` describes the current code. Update it when you change structure, data flow or the audio pipeline.
 
 ## 4. Coding Standards
 * **Components:** Use functional components with arrow functions.

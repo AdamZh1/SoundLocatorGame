@@ -1,42 +1,41 @@
 import React, { useRef, useState, useEffect } from 'react';
+import type { GameState, LevelListener, Vec2 } from '../types';
+import { metersToPx, pxToMeters } from '../utils/radarMath';
 
 interface RadarCanvasProps {
-  onPendingGuess: (x: number, z: number) => void;
-  gameState: 'INIT' | 'AUDIO_PLAYING' | 'GUESSING' | 'ROUND_REVEAL' | 'MATCH_OVER';
-  targetCoordinates: { x: number; z: number };
-  finalGuess: { x: number; z: number } | null;
-  listenerDotRef: React.RefObject<HTMLDivElement | null>;
-  radarRef: React.RefObject<HTMLDivElement | null>;
+  gameState: GameState;
+  // The guess to draw (owned by App): movable while GUESSING, the confirmed one during ROUND_REVEAL
+  guess: Vec2 | null;
+  onGuessChange: (guess: Vec2) => void;
+  targetCoordinates: Vec2;
+  subscribeLevel: (listener: LevelListener) => () => void;
 }
 
-export const RadarCanvas: React.FC<RadarCanvasProps> = ({ onPendingGuess, gameState, targetCoordinates, finalGuess, listenerDotRef, radarRef }) => {
-  const [markerPos, setMarkerPos] = useState({ x: 0, z: 0 }); // Relative to center
+export const RadarCanvas: React.FC<RadarCanvasProps> = ({ gameState, guess, onGuessChange, targetCoordinates, subscribeLevel }) => {
   const [isDragging, setIsDragging] = useState(false);
-  const [hasPlacedGuess, setHasPlacedGuess] = useState(false);
 
+  const radarRef = useRef<HTMLDivElement>(null);
+  const listenerDotRef = useRef<HTMLDivElement>(null);
   const wasDraggingRef = useRef(false);
-  const markerPosRef = useRef({ x: 0, z: 0 });
 
-  // Reset guess state when round changes
-  useEffect(() => {
-    if (gameState === 'INIT') {
-      setHasPlacedGuess(false);
-      setMarkerPos({ x: 0, z: 0 });
-      markerPosRef.current = { x: 0, z: 0 };
+  // Pulse the listener dot and radar ring with the audio level (direct DOM writes, no re-render)
+  useEffect(() => subscribeLevel((level) => {
+    if (listenerDotRef.current) {
+      listenerDotRef.current.style.transform = `translate(-50%, -50%) scale(${1 + level * 1.5})`;
     }
-  }, [gameState]);
-
-
-  // Use finalGuess if in ROUND_REVEAL, otherwise markerPos
-  const displayPos = gameState === 'ROUND_REVEAL' && finalGuess ? finalGuess : markerPos;
+    if (radarRef.current) {
+      radarRef.current.style.transform = `scale(${1 + level * 0.2})`;
+    }
+  }), [subscribeLevel]);
 
   // Convert marker position from meters to pixels for rendering
   // Note: Using z for vertical (Y) position
-  const renderX = (displayPos.x / 40) * (radarRef.current ? radarRef.current.offsetWidth / 2 : 200);
-  const renderY = (displayPos.z / 40) * (radarRef.current ? radarRef.current.offsetHeight / 2 : 200);
+  const radiusPx = radarRef.current ? radarRef.current.offsetWidth / 2 : 200;
+  const renderX = guess ? metersToPx(guess.x, radiusPx) : 0;
+  const renderY = guess ? metersToPx(guess.z, radiusPx) : 0;
 
-  const targetRenderX = (targetCoordinates.x / 40) * (radarRef.current ? radarRef.current.offsetWidth / 2 : 200);
-  const targetRenderY = (targetCoordinates.z / 40) * (radarRef.current ? radarRef.current.offsetHeight / 2 : 200);
+  const targetRenderX = metersToPx(targetCoordinates.x, radiusPx);
+  const targetRenderY = metersToPx(targetCoordinates.z, radiusPx);
 
   const handleCanvasClick = (e: React.MouseEvent) => {
     if (gameState !== 'GUESSING') return; // Only allow clicks in GUESSING state
@@ -50,19 +49,11 @@ export const RadarCanvas: React.FC<RadarCanvasProps> = ({ onPendingGuess, gameSt
     const rect = radarRef.current.getBoundingClientRect();
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
-    const maxMeters = 40;
-    const metersPerPixel = maxMeters / (rect.width / 2);
 
     const dx = e.clientX - (rect.left + centerX);
     const dz = e.clientY - (rect.top + centerY);
 
-    const newX = dx * metersPerPixel;
-    const newZ = dz * metersPerPixel;
-
-    markerPosRef.current = { x: newX, z: newZ };
-    setMarkerPos({ x: newX, z: newZ });
-    setHasPlacedGuess(true);
-    onPendingGuess(newX, newZ);
+    onGuessChange({ x: pxToMeters(dx, centerX), z: pxToMeters(dz, centerX) });
   };
 
   const handleMouseMove = (e: MouseEvent) => {
@@ -73,8 +64,6 @@ export const RadarCanvas: React.FC<RadarCanvasProps> = ({ onPendingGuess, gameSt
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
     const radiusPixels = rect.width / 2 - 6;
-    const maxMeters = 40;
-    const metersPerPixel = maxMeters / (rect.width / 2);
 
     const dx = e.clientX - (rect.left + centerX);
     const dz = e.clientY - (rect.top + centerY);
@@ -89,16 +78,12 @@ export const RadarCanvas: React.FC<RadarCanvasProps> = ({ onPendingGuess, gameSt
       finalZPixels = radiusPixels * Math.sin(angle);
     }
 
-    const newPos = { x: finalXPixels * metersPerPixel, z: finalZPixels * metersPerPixel };
-    markerPosRef.current = newPos; // Update ref
-    setMarkerPos(newPos);
-    setHasPlacedGuess(true);
+    onGuessChange({ x: pxToMeters(finalXPixels, centerX), z: pxToMeters(finalZPixels, centerX) });
   };
 
   const handleMouseUp = () => {
     if (isDragging) {
       setIsDragging(false);
-      onPendingGuess(markerPosRef.current.x, markerPosRef.current.z); // Use ref
       setTimeout(() => {
         wasDraggingRef.current = false;
       }, 50);
@@ -134,7 +119,7 @@ export const RadarCanvas: React.FC<RadarCanvasProps> = ({ onPendingGuess, gameSt
         <div ref={listenerDotRef} className="absolute top-1/2 left-1/2 w-[10px] h-[10px] bg-white rounded-full z-20" style={{ transform: 'translate(-50%, -50%)' }} />
         
         {/* Guess Marker */}
-        {(gameState === 'ROUND_REVEAL' || (gameState === 'GUESSING' && hasPlacedGuess)) && (
+        {guess && (
             <div 
             className="w-[12px] h-[12px] bg-green-500 rounded-full absolute z-30 cursor-grab shadow-md translate-x-[-50%] translate-y-[-50%]"
             style={{ left: `calc(50% + ${renderX}px)`, top: `calc(50% + ${renderY}px)` }}
@@ -147,12 +132,12 @@ export const RadarCanvas: React.FC<RadarCanvasProps> = ({ onPendingGuess, gameSt
         )}
         
         {/* Guess Label */}
-        {gameState === 'ROUND_REVEAL' && finalGuess && (
+        {gameState === 'ROUND_REVEAL' && guess && (
           <div 
             className="absolute z-40 bg-black/70 text-white text-[10px] px-1 py-0.5 rounded translate-x-[-50%] translate-y-[-250%]"
             style={{ left: `calc(50% + ${renderX}px)`, top: `calc(50% + ${renderY}px)` }}
           >
-            ({Math.round(finalGuess.x)}, {Math.round(finalGuess.z)})
+            ({Math.round(guess.x)}, {Math.round(guess.z)})
           </div>
         )}
 

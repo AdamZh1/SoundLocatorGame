@@ -120,3 +120,35 @@
 
 ## Next Steps
 - None. UI sound effects implementation complete.
+
+## Summary of Work (October 9, 2026)
+- Architecture fix list step 1: synced docs with the code.
+- Confirmed the manual attenuation curve `max(0, 1 - (d/50)^0.75)` as the official distance model (panner is `linear` with `rolloffFactor = 0`). Updated `CLAUDE.md` and `features.md`, which still required `inverse`.
+- Clarified scoring: it is quadratic falloff `10000 * (1 - (error/30)^2)`, not exponential decay as written above on August 7/29.
+- Rewrote `docs/architecture.md` to describe the current code.
+- Deleted `docs/instructions.md` (finished one-off bug-fix task with outdated values).
+- Architecture fix list step 2: added `src/types/index.ts`, `src/gameConfig.ts` and `src/utils/radarMath.ts`, and replaced duplicated inline types and hard-coded constants with them. No behavior change.
+
+## Summary of Work (October 10, 2026)
+- Architecture fix list step 3: reworked `useSpatialAudio`.
+  - Each sound gets its own filter → panner → distance gain chain, feeding a shared master gain (volume slider) → analyser.
+  - `playAudio(x, z, soundName)` resolves when the sound ends; the game moves to GUESSING right after, replacing the fixed 1s timeout.
+  - The hook no longer takes DOM refs. It exposes `subscribeLevel`, and `RadarCanvas` animates its own listener dot and ring.
+  - Sounds load in parallel via `OfflineAudioContext` (no `AudioContext` before the first click), once per page, with per-file error handling. A load failure is shown under the Play button.
+
+## Bugs Fixed
+- Moving the volume slider during playback no longer overrides distance attenuation (a 30m sound used to become as loud as a 1m sound).
+- Overlapping plays in Calibration no longer move each other's position; the Calibration Play button now stays disabled until the sound ends.
+- The level-meter animation loop no longer leaks when sounds overlap.
+- One bad audio file no longer leaves the Play button disabled forever with no error.
+
+## Summary of Work (October 10, 2026 - Continued)
+- Architecture fix list step 4: moved the round loop into a `useReducer` state machine (`src/game/gameReducer.ts`).
+  - Phases are a discriminated union; the guess only exists on the `GUESSING` phase, and the revealed guess is read from the last `history` entry. `pendingGuess`, `finalGuess` and RadarCanvas's `markerPos` copy are gone.
+  - `RadarCanvas` is now controlled: it draws the `guess` prop and reports moves via `onGuessChange`.
+  - Scoring and target generation moved to pure functions in `src/game/scoring.ts` (`scoreGuess`, `randomTarget`).
+  - `RoundResult.error` is stored unrounded; `MatchHistory` and `EndScreen` round it for display.
+
+## Bugs Fixed
+- Play Again now fully resets the round state (it used to leave `finalGuess`/`pendingGuess` behind).
+- Removed the first-render target of `(0, 0)` that was replaced by an effect; the first target is now generated with the initial state.
