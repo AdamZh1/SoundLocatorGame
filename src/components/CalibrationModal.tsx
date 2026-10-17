@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MiniRadar } from './MiniRadar';
 import { playUiSound, playHoverSound } from '../utils/audioHelper';
-import type { SoundFile } from '../types';
+import type { SoundFile, Vec2 } from '../types';
 
 interface CalibrationModalProps {
   onClose: () => void;
@@ -18,7 +18,7 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
   const [mode, setMode] = useState<'radar' | 'selection'>('selection');
   const [selectedDistance, setSelectedDistance] = useState(15);
   const [selectedDirection, setSelectedDirection] = useState<'forward' | 'backward' | 'left' | 'right'>('forward');
-  const [targetPos, setTargetPos] = useState({ x: 0, z: 0 });
+  const [targetPos, setTargetPos] = useState<Vec2 | null>(null); // picked on the MiniRadar
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedSound, setSelectedSound] = useState('');
   const distances = [5, 15, 25, 35];
@@ -27,8 +27,9 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
     let x = 0;
     let z = 0;
     if (mode === 'radar') {
-      x = targetPos.x;
-      z = targetPos.z;
+      // Nothing picked yet plays at the listener's position
+      x = targetPos?.x ?? 0;
+      z = targetPos?.z ?? 0;
     } else {
       switch (selectedDirection) {
         case 'forward': z = -selectedDistance; break;
@@ -68,7 +69,7 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
         </div>
 
         {mode === 'radar' ? (
-          <MiniRadar onSelectCoordinate={(x, z) => setTargetPos({ x, z })} />
+          <MiniRadar selected={targetPos} onSelectCoordinate={setTargetPos} />
         ) : (
           <div className="mb-6">
             <h3 className="text-sm font-semibold mb-2">Distance ({selectedDistance}m)</h3>

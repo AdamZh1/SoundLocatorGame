@@ -71,6 +71,6 @@ One `radarMath.ts` file (`metersToPx`, `pxToMeters`, `RADAR_MAX_M`, `RING_DISTAN
 2. ✅ _Done Oct 9, 2026: added and adopted by App, RadarCanvas, ResultRadar, MatchHistory, EndScreen, CalibrationModal, audioConfig, useSpatialAudio. MiniRadar left for step 5._ Add `types/`, `gameConfig.ts` and `radarMath.ts`. These carry little risk and unblock everything else.
 3. ✅ _Done Oct 10, 2026 (fixes 2a–2d and the 1-second timing guess from section 1)._ Rework `useSpatialAudio`: per-sound node chain, separate master gain, a Promise that resolves when the sound ends, levels exposed instead of DOM refs, and safe loading.
 4. ✅ _Done Oct 10, 2026: `game/gameReducer.ts` + `game/scoring.ts`; RadarCanvas is controlled; Play Again fully resets; `error` stored unrounded._ Move game state into a `useReducer` state machine and keep a single copy of the guess.
-5. Merge the three radar components onto the shared math.
+5. ✅ _Done Oct 10, 2026: shared `Radar`/`RadarPoint` in `components/Radar.tsx`, percentage positioning, MiniRadar now 40m._ Merge the three radar components onto the shared math.
 
 Steps 3 and 4 fix real bugs, not just tidiness: volume overriding distance, overlapping plays, the leaked animation loop, the 1-second timing guess, and the MiniRadar scale.

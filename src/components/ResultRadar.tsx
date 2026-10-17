@@ -1,65 +1,43 @@
 import React from 'react';
 import type { Vec2 } from '../types';
-import { metersToPx } from '../utils/radarMath';
+import { toRadarPosition } from '../utils/radarMath';
+import { Radar, RadarPoint } from './Radar';
 
 interface ResultRadarProps {
   target: Vec2;
   guess: Vec2;
 }
 
+const dotClass = 'w-[8px] h-[8px] rounded-full -translate-x-1/2 -translate-y-1/2';
+
 export const ResultRadar: React.FC<ResultRadarProps> = ({ target, guess }) => {
-  // Use a smaller size (e.g., 200px) for the mini radar
-  const size = 200;
-  const radiusPx = size / 2;
-
-  const getPos = (pos: Vec2) => ({
-    left: `calc(50% + ${metersToPx(pos.x, radiusPx)}px)`,
-    top: `calc(50% + ${metersToPx(pos.z, radiusPx)}px)`
-  });
-
-  // Helper for line coordinates to match point mapping
-  const getLinePos = (pos: Vec2) => ({
-    x: `calc(50% + ${metersToPx(pos.x, radiusPx)}px)`,
-    y: `calc(50% + ${metersToPx(pos.z, radiusPx)}px)`
-  });
-
-  const targetLine = getLinePos(target);
-  const guessLine = getLinePos(guess);
+  const t = toRadarPosition(target);
+  const g = toRadarPosition(guess);
 
   return (
-    <div className="w-[200px] h-[200px] rounded-full border border-gray-600 bg-gray-950 relative mx-auto my-4 overflow-hidden">
-      {/* Rings */}
-      <div className="absolute top-1/2 left-1/2 w-[50px] h-[50px] border border-dashed border-gray-700 rounded-full translate-x-[-50%] translate-y-[-50%]" />
-      <div className="absolute top-1/2 left-1/2 w-[100px] h-[100px] border border-dashed border-gray-700 rounded-full translate-x-[-50%] translate-y-[-50%]" />
-      <div className="absolute top-1/2 left-1/2 w-[150px] h-[150px] border border-dashed border-gray-700 rounded-full translate-x-[-50%] translate-y-[-50%]" />
-
+    <Radar
+      sizePx={200}
+      className="border border-gray-600 bg-gray-950 mx-auto my-4 overflow-hidden"
+      ringClassName="border-dashed border-gray-700"
+    >
       {/* Center */}
-      <div className="absolute top-1/2 left-1/2 w-[6px] h-[6px] bg-gray-500 rounded-full translate-x-[-50%] translate-y-[-50%]" />
+      <div className="absolute top-1/2 left-1/2 w-[6px] h-[6px] bg-gray-500 rounded-full -translate-x-1/2 -translate-y-1/2" />
 
-      {/* Target (Blue) */}
-      <div 
-        className="w-[8px] h-[8px] bg-blue-500 rounded-full absolute translate-x-[-50%] translate-y-[-50%]"
-        style={getPos(target)}
-      />
-
-      {/* Guess (Green) */}
-      <div 
-        className="w-[8px] h-[8px] bg-green-500 rounded-full absolute translate-x-[-50%] translate-y-[-50%]"
-        style={getPos(guess)}
-      />
+      <RadarPoint pos={target} className={`${dotClass} bg-blue-500`} />
+      <RadarPoint pos={guess} className={`${dotClass} bg-green-500`} />
 
       {/* Line connecting */}
       <svg className="absolute inset-0 w-full h-full pointer-events-none">
-        <line 
-          x1={targetLine.x}
-          y1={targetLine.y}
-          x2={guessLine.x}
-          y2={guessLine.y}
+        <line
+          x1={t.left}
+          y1={t.top}
+          x2={g.left}
+          y2={g.top}
           stroke="white"
           strokeWidth="1"
           strokeDasharray="4 2"
         />
       </svg>
-    </div>
+    </Radar>
   );
 };

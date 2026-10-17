@@ -10,6 +10,7 @@ src/
 │   ├── HomeScreen.tsx          # Landing page with "Start" button (unlocks audio)
 │   ├── FireButtonCanvas.tsx    # Canvas fire effect behind the Start button
 │   ├── AudioController.tsx     # Left panel: Play, Setup (calibration), volume slider
+│   ├── Radar.tsx               # Shared radar base (disc, rings, click → meters) + RadarPoint marker
 │   ├── RadarCanvas.tsx         # Center panel: main radar, guess placement/drag, reveal markers
 │   ├── ScorePopup.tsx          # Animated "+N pts" shown on ROUND_REVEAL
 │   ├── MatchHistory.tsx        # Right panel: per-round score/error and total score
@@ -27,7 +28,7 @@ src/
 │   └── index.ts                # Shared types: Vec2, GameState, AppStage, RoundResult, SoundFile
 ├── utils/
 │   ├── audioHelper.ts          # UI click/hover sounds (HTMLAudioElement, not Web Audio)
-│   └── radarMath.ts            # RADAR_MAX_M, RING_DISTANCES_M, metersToPx, pxToMeters
+│   └── radarMath.ts            # Radar scale (RADAR_MAX_M, RING_DISTANCES_M) and meters <-> screen conversion
 ├── audioConfig.ts              # List of game sounds: { name, file }
 ├── gameConfig.ts               # Rounds, score limits, target radius, attenuation distance
 ├── App.tsx                     # Owns all game state and the round loop
@@ -86,12 +87,10 @@ Max 10,000 per round, 50,000 per match. Any guess 30m or more off scores 0. Comp
 
 - Listener fixed at `(0, 0, 0)`, facing `-Z` (Web Audio default). `Y` is always 0.
 - Radar screen mapping: `+X` = right, `+Z` = down (behind the listener), `-Z` = up (in front).
-- **Main radar** (`RadarCanvas`): 400px wide, radius = 40m. Rings at 10/20/30m (100/200/300px diameter).
-- **ResultRadar:** 200px wide, radius = 40m. Same ring meanings at half scale.
-- **MiniRadar:** 200px wide, but uses `metersPerPixel = 40 / width`, so radius = **20m**. Its rings look like ResultRadar's but mean 5/10/15m. (Bug, see fix list 2f.)
+- **Every radar's edge is 40m** (`RADAR_MAX_M`), whatever its pixel size, with rings at 10/20/30m (`RING_DISTANCES_M`). Main radar (`RadarCanvas`) is 400px; `ResultRadar` and `MiniRadar` are 200px.
 - Targets are generated within 35m.
 
-`RadarCanvas` and `ResultRadar` convert with `metersToPx`/`pxToMeters` from `utils/radarMath.ts`. `MiniRadar` still has its own (wrong) math, and ring sizes are still hard-coded pixels in all three (fix list step 5).
+All three are built on the shared `<Radar>` component (`components/Radar.tsx`), which draws the disc and rings and turns clicks into meters (`onSelect`). Markers are `<RadarPoint pos={...}>` children. Positions are CSS percentages of the disc (`toRadarPosition`), so nothing measures the DOM during render. Screen → meters goes through `clientToMeters(clientX, clientY, rect)`; dragging clamps with `clampToRadius`. All in `utils/radarMath.ts`.
 
 ## 6. Audio: `useSpatialAudio.ts`
 
@@ -143,7 +142,8 @@ attenuation = max(0, 1 - (distance / 50)^0.75)
 | `ScorePopup` | `score` | Counts up the score, plays a jingle |
 | `MatchHistory` | `history, currentRound` (unused) | Lists `Round N: score pts - error m`, total score / 50,000 |
 | `CalibrationModal` | `onClose, playAudio, volume, onVolumeChange, soundFiles, loaded` | Play any sound at a chosen distance (5/15/25/35m) and direction, or a point picked on `MiniRadar` |
-| `MiniRadar` | `onSelectCoordinate` | Click to pick a calibration position |
+| `Radar` / `RadarPoint` | `sizePx, className, ringClassName, showRingLabels, onSelect, ref` / `pos, className` | Shared base for the three radars below |
+| `MiniRadar` | `selected, onSelectCoordinate` | Click to pick a calibration position (controlled; `CalibrationModal` owns the point) |
 | `EndScreen` | `history, onPlayAgain` | Final score, accordion of rounds |
 | `ResultRadar` | `target, guess` | Static radar for one round |
 | `FireButtonCanvas` / `LiquidButtonCanvas` | ref handle with `setHovered` | Decorative canvas animations |

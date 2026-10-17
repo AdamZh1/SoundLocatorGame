@@ -1,12 +1,32 @@
-// Distance from radar center to its edge, in meters
+import type { Vec2 } from '../types';
+
+// Distance from radar center to its edge, in meters. Every radar uses this scale, whatever its pixel size.
 export const RADAR_MAX_M = 40;
 
 // Labeled distance rings drawn on every radar
 export const RING_DISTANCES_M = [10, 20, 30] as const;
 
-// radiusPx is the radar's on-screen radius (half its width)
-export const metersToPx = (meters: number, radiusPx: number): number =>
-  (meters / RADAR_MAX_M) * radiusPx;
+// A distance as a percentage of the radar's radius (40m -> 100)
+export const metersToRadiusPercent = (meters: number): number => (meters / RADAR_MAX_M) * 100;
 
-export const pxToMeters = (px: number, radiusPx: number): number =>
-  (px / radiusPx) * RADAR_MAX_M;
+// CSS left/top for a point, as percentages of the radar box (center = 50%, 50%).
+// +X is right, +Z is down. Works for a radar of any size.
+export const toRadarPosition = (pos: Vec2): { left: string; top: string } => ({
+  left: `${50 + metersToRadiusPercent(pos.x) / 2}%`,
+  top: `${50 + metersToRadiusPercent(pos.z) / 2}%`,
+});
+
+// Screen point -> meters, given the radar element's bounding rect
+export const clientToMeters = (clientX: number, clientY: number, rect: DOMRect): Vec2 => {
+  const radiusPx = rect.width / 2;
+  const dx = clientX - (rect.left + radiusPx);
+  const dz = clientY - (rect.top + rect.height / 2);
+  return { x: (dx / radiusPx) * RADAR_MAX_M, z: (dz / radiusPx) * RADAR_MAX_M };
+};
+
+// Pulls a point back onto the circle of radius maxM if it's outside it
+export const clampToRadius = (pos: Vec2, maxM: number): Vec2 => {
+  const d = Math.hypot(pos.x, pos.z);
+  if (d <= maxM) return pos;
+  return { x: (pos.x / d) * maxM, z: (pos.z / d) * maxM };
+};

@@ -130,25 +130,42 @@
 - Architecture fix list step 2: added `src/types/index.ts`, `src/gameConfig.ts` and `src/utils/radarMath.ts`, and replaced duplicated inline types and hard-coded constants with them. No behavior change.
 
 ## Summary of Work (October 10, 2026)
-- Architecture fix list step 3: reworked `useSpatialAudio`.
+Finished steps 3–5 of `docs/ArchitectureFixList.md` (all five steps are now done).
+
+- **Step 3: reworked `useSpatialAudio`.**
   - Each sound gets its own filter → panner → distance gain chain, feeding a shared master gain (volume slider) → analyser.
   - `playAudio(x, z, soundName)` resolves when the sound ends; the game moves to GUESSING right after, replacing the fixed 1s timeout.
   - The hook no longer takes DOM refs. It exposes `subscribeLevel`, and `RadarCanvas` animates its own listener dot and ring.
   - Sounds load in parallel via `OfflineAudioContext` (no `AudioContext` before the first click), once per page, with per-file error handling. A load failure is shown under the Play button.
+- **Step 4: moved the round loop into a `useReducer` state machine** (`src/game/gameReducer.ts`).
+  - Phases are a discriminated union; the guess only exists on the `GUESSING` phase, and the revealed guess is read from the last `history` entry. `pendingGuess`, `finalGuess` and RadarCanvas's `markerPos` copy are gone.
+  - `RadarCanvas` is now controlled: it draws the `guess` prop and reports moves via `onGuessChange`.
+  - Scoring and target generation moved to pure functions in `src/game/scoring.ts` (`scoreGuess`, `randomTarget`).
+  - `RoundResult.error` is stored unrounded; `MatchHistory` and `EndScreen` round it for display.
+- **Step 5: merged the three radars onto shared code.**
+  - New `Radar` base component and `RadarPoint` marker (`src/components/Radar.tsx`). `RadarCanvas`, `ResultRadar` and `MiniRadar` are now thin wrappers around it.
+  - Positions are CSS percentages of the radar (`toRadarPosition` in `radarMath.ts`), so radars no longer read their size from the DOM during render. Rings are generated from `RING_DISTANCES_M`.
+  - `MiniRadar` is controlled by `CalibrationModal` and now shows ring labels.
+- Kept `docs/architecture.md` in sync with each step. Lint went from 17 problems (start of the fix list) to 5.
 
 ## Bugs Fixed
 - Moving the volume slider during playback no longer overrides distance attenuation (a 30m sound used to become as loud as a 1m sound).
 - Overlapping plays in Calibration no longer move each other's position; the Calibration Play button now stays disabled until the sound ends.
 - The level-meter animation loop no longer leaks when sounds overlap.
 - One bad audio file no longer leaves the Play button disabled forever with no error.
-
-## Summary of Work (October 10, 2026 - Continued)
-- Architecture fix list step 4: moved the round loop into a `useReducer` state machine (`src/game/gameReducer.ts`).
-  - Phases are a discriminated union; the guess only exists on the `GUESSING` phase, and the revealed guess is read from the last `history` entry. `pendingGuess`, `finalGuess` and RadarCanvas's `markerPos` copy are gone.
-  - `RadarCanvas` is now controlled: it draws the `guess` prop and reports moves via `onGuessChange`.
-  - Scoring and target generation moved to pure functions in `src/game/scoring.ts` (`scoreGuess`, `randomTarget`).
-  - `RoundResult.error` is stored unrounded; `MatchHistory` and `EndScreen` round it for display.
-
-## Bugs Fixed
 - Play Again now fully resets the round state (it used to leave `finalGuess`/`pendingGuess` behind).
 - Removed the first-render target of `(0, 0)` that was replaced by an effect; the first target is now generated with the initial state.
+- MiniRadar used a 20m radius while drawing rings that looked like 10/20/30m; it now uses the same 40m scale as every other radar, so Calibration can pick points out to the full game range.
+- The calibration marker no longer disappears when switching between Select and Radar modes while the picked point is still used.
+- ResultRadar's guess-to-target line used `calc()` in SVG `<line>` attributes, which is not valid there (the line likely never drew correctly); it now uses plain percentages.
+
+## Bugs / Known Issues
+- The Vite dev server sometimes misses file changes (the project is in a OneDrive folder) and serves stale modules. Symptom today: a white screen with "listenerDotRef is not defined" after the step 3 edits, although the code on disk was correct. Fix: restart `npm run dev` and hard-refresh. If it keeps happening, enable `server.watch.usePolling` in `vite.config.ts`.
+- Remaining lint (all pre-existing): ref read during render in `EndScreen`, empty interfaces in `FireButtonCanvas`/`LiquidButtonCanvas`, an `any` in `FireButtonCanvas`, and a missing-dependency warning on RadarCanvas's drag effect.
+- Not yet checked in the browser: steps 4 and 5 (drag smoothness, calibration radar labels at 200px, the ResultRadar line).
+
+## Next Steps
+- Play through a full match and a calibration session to verify steps 3–5.
+- Commit the fix-list work.
+- Remaining smaller items from section 3 of the fix list: pointer events for touch, UI sounds through the master volume, 0–1 volume slider, responsive layout, leftover files (`prototype.html`, the "Debug" stroke in `LiquidButtonCanvas`).
+- Optional: add Vitest and keep a unit test for `gameReducer` and `scoreGuess`.
