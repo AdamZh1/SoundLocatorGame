@@ -1,41 +1,76 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap');
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
 
 @theme {
-  --font-sans: "Outfit", sans-serif;
-  --animate-score-rise: score-rise 1.5s ease-out forwards;
-  --animate-pulse-size: pulse-size 2s ease-in-out infinite;
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+
+  --color-bg: #0a0a0a;
+  --color-surface: #141414;
+  --color-line: rgb(255 255 255 / 0.08);
+  --color-fg: #f5f5f5;
+  --color-muted: #8a8a8a;
+  --color-accent: #d4ff3a;
+
+  /* Grade tones (see game/grading.ts) */
+  --color-good: #d4ff3a;
+  --color-ok: #f1e7d0;
+  --color-bad: #ff5a4e;
+
+  --animate-breathe: breathe 2.4s ease-in-out infinite;
+  --animate-sweep: sweep 6s linear infinite;
+}
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-bg text-fg font-sans antialiased;
+  }
+
+  ::selection {
+    @apply bg-accent text-bg;
+  }
 }
 
 @layer components {
-  .btn-circle {
-    @apply size-20 rounded-full flex items-center justify-center font-bold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)];
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-line bg-surface px-5 h-11
+      text-sm font-medium tracking-tight text-fg transition-[color,border-color,transform,background-color] duration-200
+      hover:border-accent/60 hover:text-accent active:scale-[0.97]
+      focus-visible:outline-none focus-visible:border-accent
+      disabled:pointer-events-none disabled:opacity-40;
   }
-  
-  .btn-primary-border {
-    @apply p-[1px] rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center;
+
+  .kbd {
+    @apply inline-flex items-center justify-center min-w-6 h-6 px-1.5 rounded-md border border-line bg-surface
+      font-mono text-[11px] text-fg/80 leading-none;
   }
-  
-  .main-header {
-    @apply text-[6rem] lowercase tracking-tighter font-bold;
+
+  .label {
+    @apply font-mono text-[11px] uppercase tracking-[0.14em] text-muted;
+  }
+
+  /* Film grain over the whole app; pointer-events off so it never blocks input */
+  .grain {
+    @apply pointer-events-none fixed inset-0 z-[100] opacity-[0.045] mix-blend-overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 }
 
-@keyframes score-rise {
-  0% { transform: translateY(-70px); opacity: 0; }
-  100% { transform: translateY(-250px); opacity: 1; }
+@keyframes breathe {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.35; }
+  50% { transform: translate(-50%, -50%) scale(1.35); opacity: 0.9; }
 }
 
-@keyframes pulse-size {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+@keyframes sweep {
+  to { transform: rotate(360deg); }
 }
 
-@keyframes slow-breathe {
-  0%, 100% { transform: scale(1); opacity: 0.25; }
-  50% { transform: scale(1.08); opacity: 0.45; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-breathe, .animate-sweep {
+    animation: none;
+  }
 }
-.animate-slow-breathe {
-  animation: slow-breathe 7s ease-in-out infinite;
-}
-

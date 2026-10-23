@@ -30,3 +30,6 @@ export const clampToRadius = (pos: Vec2, maxM: number): Vec2 => {
   if (d <= maxM) return pos;
   return { x: (pos.x / d) * maxM, z: (pos.z / d) * maxM };
 };
+
+// Compass bearing of a point from the listener, 0-360°: 0 = forward (-Z), 90 = right (+X), clockwise
+export const bearingDeg = (pos: Vec2): number => ((Math.atan2(pos.x, -pos.z) * 180) / Math.PI + 360) % 360;

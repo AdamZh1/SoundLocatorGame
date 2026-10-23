@@ -169,3 +169,37 @@ Finished steps 3–5 of `docs/ArchitectureFixList.md` (all five steps are now do
 - Commit the fix-list work.
 - Remaining smaller items from section 3 of the fix list: pointer events for touch, UI sounds through the master volume, 0–1 volume slider, responsive layout, leftover files (`prototype.html`, the "Debug" stroke in `LiquidButtonCanvas`).
 - Optional: add Vitest and keep a unit test for `gameReducer` and `scoreGuess`.
+
+## Summary of Work (October 16, 2026)
+UI revamp: replaced the generic three-panel dashboard with a clean, minimal, animated single-stage design (plan agreed with the user: single-stage HUD, clean minimal look, `motion` for animation, keyboard shortcuts, grade words; keep the fire/liquid button effects but rebuild them).
+
+- **Design system:** tokens in `index.css` `@theme` (near-black background, one lime accent `#d4ff3a`, good/ok/bad grade tones), Geist + Geist Mono with tabular numbers, `.btn` / `.kbd` / `.label` classes, a film-grain overlay. The blue→purple gradient borders and `btn-circle` are gone.
+- **Layout:** the radar fills the screen; the HUD corners hold `RoundPips` (round + grade-colored segments), `ScoreTicker` (rolling total), `VolumeControl` and Calibrate. Removed `AudioController`, `MatchHistory`, `ScorePopup`.
+- **Radar:** compass ticks, rotating sweep (by phase), the center node is the play button, crosshair with a `distance · bearing` readout, an accent rim ring driven by `subscribeLevel`. Drag now uses pointer events with pointer capture (touch works, no document listeners).
+- **Reveal:** guess pulses and goes hollow → line draws to the target → target ripples → `RevealReadout` counts up score/error and shows the grade word (`game/grading.ts`).
+- **Screens:** full-bleed home with a staggered title and an ambient radar that morphs into the game radar (`layoutId`); full-page end screen with a total count-up, overall grade and five result radars; calibration is a right-side sheet with segmented controls and Esc to close.
+- **Keyboard:** `useKeyboardShortcuts` (Space play/start, Enter lock in / play again, N next).
+- **Fire/Liquid buttons rebuilt** as self-contained `FireButton` / `LiquidButton` on a shared `useCanvasLoop` hook: DPR-aware, the loop sleeps when idle, typed particles/springs, fixed the splice-in-forEach particle skip, removed the debug stroke, accent colors, no `forwardRef`.
+- Respects `prefers-reduced-motion` (`MotionConfig reducedMotion="user"` and the canvas loop).
+- Added dependency: `motion`.
+
+## Verification
+- `npm run build` and `npm run lint` are clean (lint went from 5 pre-existing problems to 0).
+- Drove a full 5-round match in headless Chrome (Playwright): home + fire hover, Space to play, place/drag guess with crosshair readout, Enter to lock in, reveal + grade, N through to the end screen, Enter to play again, calibration sheet at 390px width. No console errors.
+- Not checked: how it sounds/feels with real headphones, Safari/Firefox, a physical touch device.
+
+## Next Steps
+- **Manual playtest of the revamp (user, pending):** play full matches with headphones and report back. Check:
+  - Home: title animation, fire hover effect + crackle, the background radar morphing into the game radar on Start.
+  - Game: Space / center-node play, the rim ring reacting to the sound, crosshair readout, click + drag placement, Enter to lock in, reveal timing (line → target ripple → score/grade), round segments and total score rolling.
+  - End screen: count-up, overall grade, liquid Play Again button, Enter to restart.
+  - Calibration sheet: presets, pick-on-radar, sound select, volume, Esc to close, shortcuts disabled while open.
+- **Browsers/devices not yet checked:** Firefox, Safari, a real touch device (drag uses pointer capture), a small laptop screen, and OS reduced-motion mode.
+- **Open design questions for the playtest:**
+  - Is the lime accent right, or should the fire/liquid buttons go back to their original cyan / blue-purple?
+  - Reveal pacing (about 1.2s before the Next button appears): too slow once you've played a few rounds?
+  - Grade thresholds (DEAD ON ≥ 9000, SHARP ≥ 7000, CLOSE ≥ 4000): do they feel fair?
+  - The sweep during GUESSING (35% opacity): helpful atmosphere or distracting?
+- **Commit the revamp** once the playtest is OK (not committed yet; branch `ArchRevamp`).
+- **Remaining smaller items (from the fix list):** UI sounds through the master volume, a 0–1 volume slider, leftover `prototype.html`.
+- Optional: add Vitest with unit tests for `gameReducer`, `scoreGuess` and `gradeFor`.

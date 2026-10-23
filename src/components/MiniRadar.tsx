@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Vec2 } from '../types';
-import { Radar, RadarPoint } from './Radar';
+import { BearingTicks, Radar, RadarPoint } from './Radar';
 
 interface MiniRadarProps {
   selected: Vec2 | null;
@@ -8,19 +8,19 @@ interface MiniRadarProps {
 }
 
 export const MiniRadar: React.FC<MiniRadarProps> = ({ selected, onSelectCoordinate }) => (
-  <div className="flex justify-center mb-6">
+  <div className="flex justify-center">
     <Radar
-      sizePx={200}
-      className="border border-gray-500 bg-gray-900 cursor-crosshair overflow-hidden"
-      ringClassName="border-dashed border-gray-700"
+      sizePx={240}
+      className="border border-line bg-surface/40 cursor-crosshair overflow-hidden"
       showRingLabels
       onSelect={onSelectCoordinate}
     >
+      <BearingTicks className="text-fg/15" />
       {/* Center */}
-      <div className="absolute top-1/2 left-1/2 w-[6px] h-[6px] bg-white rounded-full -translate-x-1/2 -translate-y-1/2 z-20" />
+      <div className="absolute top-1/2 left-1/2 size-1.5 bg-fg rounded-full -translate-x-1/2 -translate-y-1/2 z-20" />
 
       {selected && (
-        <RadarPoint pos={selected} className="w-[8px] h-[8px] bg-blue-500 rounded-full -translate-x-1/2 -translate-y-1/2 z-30" />
+        <RadarPoint pos={selected} className="size-2.5 bg-accent rounded-full -translate-x-1/2 -translate-y-1/2 z-30" />
       )}
     </Radar>
   </div>
