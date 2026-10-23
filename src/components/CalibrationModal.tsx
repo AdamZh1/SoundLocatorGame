@@ -1,40 +1,81 @@
-import React, { useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
+import { motion } from 'motion/react';
 import { MiniRadar } from './MiniRadar';
+import { VolumeControl } from './VolumeControl';
 import { playUiSound, playHoverSound } from '../utils/audioHelper';
+import type { SoundFile, Vec2 } from '../types';
 
 interface CalibrationModalProps {
   onClose: () => void;
-  playAudio: (
-    x: number, 
-    z: number, 
-    volume: number, 
-    soundName: string, 
-    dotRef: React.RefObject<HTMLDivElement | null>, 
-    ringRef: React.RefObject<HTMLDivElement | null>
-  ) => Promise<void>;
+  playAudio: (x: number, z: number, soundName: string) => Promise<void>;
   volume: number;
   onVolumeChange: (vol: number) => void;
-  soundFiles: { name: string; file: string }[];
+  soundFiles: SoundFile[];
   loaded: boolean;
 }
 
-export const CalibrationModal: React.FC<CalibrationModalProps> = ({ 
-  onClose, playAudio, volume, onVolumeChange, soundFiles, loaded 
+type Direction = 'forward' | 'backward' | 'left' | 'right';
+
+interface SegmentedProps<T extends string | number> {
+  options: readonly T[];
+  value: T;
+  onChange: (value: T) => void;
+  format?: (value: T) => string;
+}
+
+// Pill row of mutually exclusive options; the active one gets a sliding highlight
+const Segmented = <T extends string | number>({ options, value, onChange, format = String }: SegmentedProps<T>) => {
+  const id = useId();
+  return (
+    <div className="flex rounded-full border border-line bg-surface p-1">
+      {options.map((option) => (
+        <button
+          key={option}
+          onClick={() => onChange(option)}
+          onMouseEnter={playHoverSound}
+          className={`relative flex-1 rounded-full px-3 py-1.5 text-sm transition-colors ${value === option ? 'text-bg' : 'text-muted hover:text-fg'}`}
+        >
+          {value === option && (
+            <motion.span layoutId={`segment-${id}`} className="absolute inset-0 rounded-full bg-accent" transition={{ type: 'spring', stiffness: 500, damping: 35 }} />
+          )}
+          <span className="relative">{format(option)}</span>
+        </button>
+      ))}
+    </div>
+  );
+};
+
+const MODES = ['selection', 'radar'] as const;
+const DISTANCES = [5, 15, 25, 35] as const;
+const DIRECTIONS: readonly Direction[] = ['forward', 'backward', 'left', 'right'];
+
+export const CalibrationModal: React.FC<CalibrationModalProps> = ({
+  onClose, playAudio, volume, onVolumeChange, soundFiles, loaded
 }) => {
   const [mode, setMode] = useState<'radar' | 'selection'>('selection');
-  const [selectedDistance, setSelectedDistance] = useState(15);
-  const [selectedDirection, setSelectedDirection] = useState<'forward' | 'backward' | 'left' | 'right'>('forward');
-  const [targetPos, setTargetPos] = useState({ x: 0, z: 0 });
+  const [selectedDistance, setSelectedDistance] = useState<typeof DISTANCES[number]>(15);
+  const [selectedDirection, setSelectedDirection] = useState<Direction>('forward');
+  const [targetPos, setTargetPos] = useState<Vec2 | null>(null); // picked on the MiniRadar
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedSound, setSelectedSound] = useState('');
-  const distances = [5, 15, 25, 35];
-  
+
+  const close = () => { playUiSound(); onClose(); };
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+
   const handlePlay = async () => {
     let x = 0;
     let z = 0;
     if (mode === 'radar') {
-      x = targetPos.x;
-      z = targetPos.z;
+      // Nothing picked yet plays at the listener's position
+      x = targetPos?.x ?? 0;
+      z = targetPos?.z ?? 0;
     } else {
       switch (selectedDirection) {
         case 'forward': z = -selectedDistance; break;
@@ -43,122 +84,85 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
         case 'right': x = selectedDistance; break;
       }
     }
-    
+
     // Pick selected sound or random
     const soundToPlay = selectedSound !== '' ? selectedSound : soundFiles[Math.floor(Math.random() * soundFiles.length)].file;
     setIsPlaying(true);
-    await playAudio(x, z, volume, soundToPlay, { current: null }, { current: null });
+    await playAudio(x, z, soundToPlay);
     setIsPlaying(false);
   };
 
+  const playLabel = () => {
+    if (isPlaying) return 'Playing…';
+    if (!loaded) return 'Loading…';
+    return 'Play test sound';
+  };
+
   return (
-    <div className="fixed inset-0 bg-gray-900/80 z-50 flex justify-center items-center">
-      <div className="bg-black p-6 rounded-xl border border-gray-600 w-[500px] max-h-[90vh] overflow-y-auto">
-        <h2 className="text-3xl font-bold mb-6 uppercase tracking-widest text-center text-gray-400">Calibration</h2>
-        
-        <div className="flex gap-2 mb-6 justify-center">
-          <button 
-            onClick={() => setMode('selection')}
-            onMouseEnter={playHoverSound}
-            className={`btn-circle ${mode === 'selection' ? 'bg-blue-600' : 'bg-gray-700'}`}
-          >
-            Select
+    <>
+      <motion.div
+        className="fixed inset-0 z-50 bg-bg/70 backdrop-blur-sm"
+        onClick={close}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+      />
+      <motion.aside
+        role="dialog"
+        aria-label="Calibration"
+        className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col gap-8 overflow-y-auto border-l border-line bg-bg p-8"
+        initial={{ x: '100%' }}
+        animate={{ x: 0 }}
+        exit={{ x: '100%' }}
+        transition={{ type: 'spring', stiffness: 380, damping: 40 }}
+      >
+        <header className="flex items-center justify-between">
+          <h2 className="text-2xl font-semibold tracking-tight">Calibrate</h2>
+          <button onClick={close} onMouseEnter={playHoverSound} className="flex items-center gap-2 text-xs text-muted transition-colors hover:text-fg">
+            Close <kbd className="kbd">Esc</kbd>
           </button>
-          <button 
-            onClick={() => setMode('radar')}
-            onMouseEnter={playHoverSound}
-            className={`btn-circle ${mode === 'radar' ? 'bg-blue-600' : 'bg-gray-700'}`}
-          >
-            Radar
-          </button>
-        </div>
+        </header>
+
+        <p className="-mt-4 text-sm text-muted">Play sounds at known positions to learn what distance and direction sound like.</p>
+
+        <Segmented options={MODES} value={mode} onChange={setMode} format={(m) => (m === 'selection' ? 'Presets' : 'Pick on radar')} />
 
         {mode === 'radar' ? (
-          <MiniRadar onSelectCoordinate={(x, z) => setTargetPos({ x, z })} />
+          <MiniRadar selected={targetPos} onSelectCoordinate={setTargetPos} />
         ) : (
-          <div className="mb-6">
-            <h3 className="text-sm font-semibold mb-2">Distance ({selectedDistance}m)</h3>
-            <div className="flex gap-2 mb-4 justify-center">
-              {distances.map(d => (
-                <button 
-                  key={d} 
-                  onClick={() => setSelectedDistance(d)}
-                  onMouseEnter={playHoverSound}
-                  className={`btn-circle ${selectedDistance === d ? 'bg-blue-600' : 'bg-gray-700'}`}
-                >
-                  {d}m
-                </button>
-              ))}
+          <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-2">
+              <span className="label">Distance</span>
+              <Segmented options={DISTANCES} value={selectedDistance} onChange={setSelectedDistance} format={(d) => `${d}m`} />
             </div>
-
-            <h3 className="text-sm font-semibold mb-2 text-center">Direction</h3>
-            <div className="flex gap-2 justify-center">
-              {(['forward', 'backward', 'left', 'right'] as const).map(dir => (
-                <button 
-                  key={dir} 
-                  onClick={() => setSelectedDirection(dir)}
-                  onMouseEnter={playHoverSound}
-                  className={`btn-circle ${selectedDirection === dir ? 'bg-blue-600' : 'bg-gray-700'}`}
-                >
-                  {dir.charAt(0).toUpperCase()}
-                </button>
-              ))}
+            <div className="flex flex-col gap-2">
+              <span className="label">Direction</span>
+              <Segmented options={DIRECTIONS} value={selectedDirection} onChange={setSelectedDirection} format={(d) => d.charAt(0).toUpperCase() + d.slice(1)} />
             </div>
           </div>
         )}
 
-        <div className="mb-6 p-4 border border-gray-600 rounded-xl bg-black">
-          <label className="block mb-2 text-sm text-gray-400">Select Sound</label>
-          <select 
+        <div className="flex flex-col gap-2">
+          <label htmlFor="calibration-sound" className="label">Sound</label>
+          <select
+            id="calibration-sound"
             value={selectedSound}
             onChange={(e) => setSelectedSound(e.target.value)}
-            className="w-full bg-gray-700 p-2 rounded text-sm text-white"
+            className="h-11 rounded-full border border-line bg-surface px-4 text-sm text-fg outline-none focus-visible:border-accent"
           >
             <option value="">Random</option>
-            {soundFiles.map(item => (
+            {soundFiles.map((item) => (
               <option key={item.file} value={item.file}>{item.name}</option>
             ))}
           </select>
         </div>
 
-        <div className="mb-6 p-2">
-          <div className="flex justify-between items-center mb-2">
-            <label className="text-sm lowercase tracking-tighter text-gray-400">volume ({volume.toFixed(3)})</label>
-            <span className="text-xs font-mono text-gray-500">{(volume * 200).toFixed(0)}%</span>
-          </div>
-          <input 
-            type="range" 
-            min="0" 
-            max=".5" 
-            step="0.01" 
-            value={volume}
-            onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
-            className="w-full appearance-none bg-black h-2 rounded-full cursor-pointer 
-              [&::-webkit-slider-runnable-track]:bg-gradient-to-r [&::-webkit-slider-runnable-track]:from-cyan-500 [&::-webkit-slider-runnable-track]:to-purple-500 [&::-webkit-slider-runnable-track]:rounded-full
-              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:active:scale-125"
-          />
-        </div>
+        <VolumeControl volume={volume} onVolumeChange={onVolumeChange} />
 
-        <div className="btn-primary-border mb-2">
-          <button 
-            onClick={handlePlay}
-            onMouseEnter={playHoverSound}
-            disabled={!loaded || isPlaying}
-            className="btn-circle bg-gray-900 w-full rounded-full"
-          >
-            {isPlaying ? 'Playing...' : !loaded ? 'Loading...' : 'Play'}
-          </button>
-        </div>
-
-        <button 
-            onClick={() => { playUiSound(); onClose(); }} 
-            onMouseEnter={playHoverSound}
-            className="btn-circle bg-red-600 text-white w-full rounded-full"
-        >
-            Close
+        <button onClick={handlePlay} onMouseEnter={playHoverSound} disabled={!loaded || isPlaying} className="btn mt-auto h-12 w-full">
+          {playLabel()}
         </button>
-      </div>
-    </div>
+      </motion.aside>
+    </>
   );
 };
-

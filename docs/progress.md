@@ -120,3 +120,86 @@
 
 ## Next Steps
 - None. UI sound effects implementation complete.
+
+## Summary of Work (October 9, 2026)
+- Architecture fix list step 1: synced docs with the code.
+- Confirmed the manual attenuation curve `max(0, 1 - (d/50)^0.75)` as the official distance model (panner is `linear` with `rolloffFactor = 0`). Updated `CLAUDE.md` and `features.md`, which still required `inverse`.
+- Clarified scoring: it is quadratic falloff `10000 * (1 - (error/30)^2)`, not exponential decay as written above on August 7/29.
+- Rewrote `docs/architecture.md` to describe the current code.
+- Deleted `docs/instructions.md` (finished one-off bug-fix task with outdated values).
+- Architecture fix list step 2: added `src/types/index.ts`, `src/gameConfig.ts` and `src/utils/radarMath.ts`, and replaced duplicated inline types and hard-coded constants with them. No behavior change.
+
+## Summary of Work (October 10, 2026)
+Finished steps 3–5 of `docs/ArchitectureFixList.md` (all five steps are now done).
+
+- **Step 3: reworked `useSpatialAudio`.**
+  - Each sound gets its own filter → panner → distance gain chain, feeding a shared master gain (volume slider) → analyser.
+  - `playAudio(x, z, soundName)` resolves when the sound ends; the game moves to GUESSING right after, replacing the fixed 1s timeout.
+  - The hook no longer takes DOM refs. It exposes `subscribeLevel`, and `RadarCanvas` animates its own listener dot and ring.
+  - Sounds load in parallel via `OfflineAudioContext` (no `AudioContext` before the first click), once per page, with per-file error handling. A load failure is shown under the Play button.
+- **Step 4: moved the round loop into a `useReducer` state machine** (`src/game/gameReducer.ts`).
+  - Phases are a discriminated union; the guess only exists on the `GUESSING` phase, and the revealed guess is read from the last `history` entry. `pendingGuess`, `finalGuess` and RadarCanvas's `markerPos` copy are gone.
+  - `RadarCanvas` is now controlled: it draws the `guess` prop and reports moves via `onGuessChange`.
+  - Scoring and target generation moved to pure functions in `src/game/scoring.ts` (`scoreGuess`, `randomTarget`).
+  - `RoundResult.error` is stored unrounded; `MatchHistory` and `EndScreen` round it for display.
+- **Step 5: merged the three radars onto shared code.**
+  - New `Radar` base component and `RadarPoint` marker (`src/components/Radar.tsx`). `RadarCanvas`, `ResultRadar` and `MiniRadar` are now thin wrappers around it.
+  - Positions are CSS percentages of the radar (`toRadarPosition` in `radarMath.ts`), so radars no longer read their size from the DOM during render. Rings are generated from `RING_DISTANCES_M`.
+  - `MiniRadar` is controlled by `CalibrationModal` and now shows ring labels.
+- Kept `docs/architecture.md` in sync with each step. Lint went from 17 problems (start of the fix list) to 5.
+
+## Bugs Fixed
+- Moving the volume slider during playback no longer overrides distance attenuation (a 30m sound used to become as loud as a 1m sound).
+- Overlapping plays in Calibration no longer move each other's position; the Calibration Play button now stays disabled until the sound ends.
+- The level-meter animation loop no longer leaks when sounds overlap.
+- One bad audio file no longer leaves the Play button disabled forever with no error.
+- Play Again now fully resets the round state (it used to leave `finalGuess`/`pendingGuess` behind).
+- Removed the first-render target of `(0, 0)` that was replaced by an effect; the first target is now generated with the initial state.
+- MiniRadar used a 20m radius while drawing rings that looked like 10/20/30m; it now uses the same 40m scale as every other radar, so Calibration can pick points out to the full game range.
+- The calibration marker no longer disappears when switching between Select and Radar modes while the picked point is still used.
+- ResultRadar's guess-to-target line used `calc()` in SVG `<line>` attributes, which is not valid there (the line likely never drew correctly); it now uses plain percentages.
+
+## Bugs / Known Issues
+- The Vite dev server sometimes misses file changes (the project is in a OneDrive folder) and serves stale modules. Symptom today: a white screen with "listenerDotRef is not defined" after the step 3 edits, although the code on disk was correct. Fix: restart `npm run dev` and hard-refresh. If it keeps happening, enable `server.watch.usePolling` in `vite.config.ts`.
+- Remaining lint (all pre-existing): ref read during render in `EndScreen`, empty interfaces in `FireButtonCanvas`/`LiquidButtonCanvas`, an `any` in `FireButtonCanvas`, and a missing-dependency warning on RadarCanvas's drag effect.
+- Not yet checked in the browser: steps 4 and 5 (drag smoothness, calibration radar labels at 200px, the ResultRadar line).
+
+## Next Steps
+- Play through a full match and a calibration session to verify steps 3–5.
+- Commit the fix-list work.
+- Remaining smaller items from section 3 of the fix list: pointer events for touch, UI sounds through the master volume, 0–1 volume slider, responsive layout, leftover files (`prototype.html`, the "Debug" stroke in `LiquidButtonCanvas`).
+- Optional: add Vitest and keep a unit test for `gameReducer` and `scoreGuess`.
+
+## Summary of Work (October 16, 2026)
+UI revamp: replaced the generic three-panel dashboard with a clean, minimal, animated single-stage design (plan agreed with the user: single-stage HUD, clean minimal look, `motion` for animation, keyboard shortcuts, grade words; keep the fire/liquid button effects but rebuild them).
+
+- **Design system:** tokens in `index.css` `@theme` (near-black background, one lime accent `#d4ff3a`, good/ok/bad grade tones), Geist + Geist Mono with tabular numbers, `.btn` / `.kbd` / `.label` classes, a film-grain overlay. The blue→purple gradient borders and `btn-circle` are gone.
+- **Layout:** the radar fills the screen; the HUD corners hold `RoundPips` (round + grade-colored segments), `ScoreTicker` (rolling total), `VolumeControl` and Calibrate. Removed `AudioController`, `MatchHistory`, `ScorePopup`.
+- **Radar:** compass ticks, rotating sweep (by phase), the center node is the play button, crosshair with a `distance · bearing` readout, an accent rim ring driven by `subscribeLevel`. Drag now uses pointer events with pointer capture (touch works, no document listeners).
+- **Reveal:** guess pulses and goes hollow → line draws to the target → target ripples → `RevealReadout` counts up score/error and shows the grade word (`game/grading.ts`).
+- **Screens:** full-bleed home with a staggered title and an ambient radar that morphs into the game radar (`layoutId`); full-page end screen with a total count-up, overall grade and five result radars; calibration is a right-side sheet with segmented controls and Esc to close.
+- **Keyboard:** `useKeyboardShortcuts` (Space play/start, Enter lock in / play again, N next).
+- **Fire/Liquid buttons rebuilt** as self-contained `FireButton` / `LiquidButton` on a shared `useCanvasLoop` hook: DPR-aware, the loop sleeps when idle, typed particles/springs, fixed the splice-in-forEach particle skip, removed the debug stroke, accent colors, no `forwardRef`.
+- Respects `prefers-reduced-motion` (`MotionConfig reducedMotion="user"` and the canvas loop).
+- Added dependency: `motion`.
+
+## Verification
+- `npm run build` and `npm run lint` are clean (lint went from 5 pre-existing problems to 0).
+- Drove a full 5-round match in headless Chrome (Playwright): home + fire hover, Space to play, place/drag guess with crosshair readout, Enter to lock in, reveal + grade, N through to the end screen, Enter to play again, calibration sheet at 390px width. No console errors.
+- Not checked: how it sounds/feels with real headphones, Safari/Firefox, a physical touch device.
+
+## Next Steps
+- **Manual playtest of the revamp (user, pending):** play full matches with headphones and report back. Check:
+  - Home: title animation, fire hover effect + crackle, the background radar morphing into the game radar on Start.
+  - Game: Space / center-node play, the rim ring reacting to the sound, crosshair readout, click + drag placement, Enter to lock in, reveal timing (line → target ripple → score/grade), round segments and total score rolling.
+  - End screen: count-up, overall grade, liquid Play Again button, Enter to restart.
+  - Calibration sheet: presets, pick-on-radar, sound select, volume, Esc to close, shortcuts disabled while open.
+- **Browsers/devices not yet checked:** Firefox, Safari, a real touch device (drag uses pointer capture), a small laptop screen, and OS reduced-motion mode.
+- **Open design questions for the playtest:**
+  - Is the lime accent right, or should the fire/liquid buttons go back to their original cyan / blue-purple?
+  - Reveal pacing (about 1.2s before the Next button appears): too slow once you've played a few rounds?
+  - Grade thresholds (DEAD ON ≥ 9000, SHARP ≥ 7000, CLOSE ≥ 4000): do they feel fair?
+  - The sweep during GUESSING (35% opacity): helpful atmosphere or distracting?
+- **Commit the revamp** once the playtest is OK (not committed yet; branch `ArchRevamp`).
+- **Remaining smaller items (from the fix list):** UI sounds through the master volume, a 0–1 volume slider, leftover `prototype.html`.
+- Optional: add Vitest with unit tests for `gameReducer`, `scoreGuess` and `gradeFor`.
