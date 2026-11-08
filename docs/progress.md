@@ -203,3 +203,38 @@ UI revamp: replaced the generic three-panel dashboard with a clean, minimal, ani
 - **Commit the revamp** once the playtest is OK (not committed yet; branch `ArchRevamp`).
 - **Remaining smaller items (from the fix list):** UI sounds through the master volume, a 0–1 volume slider, leftover `prototype.html`.
 - Optional: add Vitest with unit tests for `gameReducer`, `scoreGuess` and `gradeFor`.
+
+## Summary of Work (October 22–23, 2026)
+- The UI revamp was committed ("revised website layout") and merged to `main` in PR #5 (`ArchRevamp`).
+
+## Summary of Work (November 7, 2026)
+Two new features, planned with the user (`docs/features.md` features 4 and 5).
+
+- **Match history:** the last 10 finished matches plus an all-time best, saved in `localStorage` (`sound-locator:history:v1`).
+  - Pure module `src/game/matchHistory.ts` (validation, append/trim, best, averages), `useMatchHistory` hook, `HistorySparkline` bar chart.
+  - Shown on the home screen (best, recent average, chart), in the game HUD (`Best N` under the score) and on the end screen (first match / new best / vs. recent avg, plus the chart with this match highlighted).
+  - Saved in `handleNextRound` on the last round (event handler, not an effect). A repeat call for the same match is ignored, so a double key press can't save twice.
+- **Background sound waves:** `SoundWaves` canvas behind the game screen (gameplay only). It surges while the sound plays and on scoring (scaled by round score), driven by game events only so it can't hint at distance or direction.
+- **Added Vitest** (`npm run test`): 17 tests for `matchHistory.ts`.
+
+## Verification
+- `npm run test` (17 passed), `npm run build` and `npm run lint` are clean.
+- Headless Chrome (Playwright), two full matches:
+  - No history UI on a first visit.
+  - "First match saved", then "New best +N" on the end screen; the HUD shows Best.
+  - One save per match, even with an extra key press.
+  - A best older than the last 10 is kept.
+  - Garbage JSON in storage → empty history, no crash.
+  - Waves visibly surge while listening.
+  - The home block fits at 390px with no horizontal scroll.
+  - No console errors.
+- Not checked: how the waves feel over a full real session with headphones (distraction level), Safari/Firefox.
+
+### History chart hover (November 7, 2026, later)
+- Rebuilt `HistorySparkline` from SVG to HTML bars so each bar has a custom hover: the bar turns accent and lifts 3px, and a rounded card replaces the native `<title>` tooltip (total, date or "This match", "Best" tag). Applies on the home and end screens.
+- Verified in headless Chrome: no native tooltips left, the card stays on screen at the edges (no horizontal scroll at 390px), no console errors.
+
+## Next Steps
+- Playtest the waves: are they too faint or too busy? The knobs are the `BASELINE`, `PLAYING_SUSTAIN` and alpha values at the top of `SoundWaves.tsx`.
+- Commit the two features.
+- Still open from before: UI sounds through the master volume, 0–1 volume slider, leftover `prototype.html`. With Vitest set up, `gameReducer` / `scoreGuess` / `gradeFor` tests are now cheap to add.

@@ -23,3 +23,23 @@ export interface SoundFile {
   name: string;
   file: string;
 }
+
+// A finished match as stored in the match history
+export interface SavedMatch {
+  id: string;
+  playedAt: number; // epoch ms
+  total: number;
+  rounds: RoundResult[];
+}
+
+export interface HistoryStore {
+  version: 1;
+  matches: SavedMatch[]; // newest first, at most HISTORY_LIMIT
+  best: SavedMatch | null; // all-time best, kept even after it leaves `matches`
+}
+
+// What recording a match changed, for the end screen
+export interface MatchRecord {
+  isNewBest: boolean;
+  previousBest: number | null;
+}

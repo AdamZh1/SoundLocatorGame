@@ -8,18 +8,46 @@ import { KeyHint } from './KeyHint';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { playUiSound } from '../utils/audioHelper';
 import { gradeFor, toneText } from '../game/grading';
-import type { RoundResult } from '../types';
+import { HistorySparkline } from './HistorySparkline';
+import { averageTotal } from '../game/matchHistory';
+import type { HistoryStore, MatchRecord, RoundResult } from '../types';
 import { MAX_MATCH_SCORE, TOTAL_ROUNDS } from '../gameConfig';
 
 interface EndScreenProps {
   history: RoundResult[];
   onPlayAgain: () => void;
+  saved: HistoryStore;
+  record: (MatchRecord & { id: string }) | null; // how saving this match changed the history
 }
 
 const COUNT_DURATION = 1.6;
 const easeOut = [0.16, 1, 0.3, 1] as const;
 
-const EndScreen: React.FC<EndScreenProps> = ({ history, onPlayAgain }) => {
+const signed = (n: number) => `${n >= 0 ? '+' : '−'}${formatInt(Math.abs(n))}`;
+
+// One line comparing this match to the saved history
+const ComparisonLine: React.FC<{ total: number; saved: HistoryStore; record: MatchRecord & { id: string } }> = ({ total, saved, record }) => {
+  if (record.isNewBest && record.previousBest === null) {
+    return <span className="label">First match saved</span>;
+  }
+  if (record.isNewBest && record.previousBest !== null) {
+    return (
+      <span className="label text-accent">
+        New best <span className="tabular-nums">{signed(total - record.previousBest)}</span>
+      </span>
+    );
+  }
+  const average = averageTotal(saved.matches, record.id);
+  if (average === null) return null;
+  const delta = total - average;
+  return (
+    <span className="label">
+      <span className={`tabular-nums ${delta >= 0 ? 'text-good' : 'text-bad'}`}>{signed(delta)}</span> vs. recent avg
+    </span>
+  );
+};
+
+const EndScreen: React.FC<EndScreenProps> = ({ history, onPlayAgain, saved, record }) => {
   const totalScore = history.reduce((sum, item) => sum + item.score, 0);
   // Overall grade uses the average round score, on the same scale as a single round
   const grade = gradeFor(totalScore / TOTAL_ROUNDS);
@@ -44,6 +72,23 @@ const EndScreen: React.FC<EndScreenProps> = ({ history, onPlayAgain }) => {
         >
           {grade.label}
         </motion.span>
+        {record && (
+          <motion.div
+            className="mt-3 flex flex-col items-center gap-3"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: COUNT_DURATION + 0.3, duration: 0.4, ease: easeOut }}
+          >
+            <ComparisonLine total={totalScore} saved={saved} record={record} />
+            <HistorySparkline
+              matches={saved.matches}
+              best={saved.best?.total ?? null}
+              highlightId={record.id}
+              delay={COUNT_DURATION + 0.3}
+              className="h-10 w-48"
+            />
+          </motion.div>
+        )}
       </div>
 
       <ul className="grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-3 lg:grid-cols-5">
