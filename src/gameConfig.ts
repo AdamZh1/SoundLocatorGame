@@ -11,3 +11,8 @@ export const MAX_TARGET_DISTANCE_M = 35;
 
 // Audio: manual attenuation reaches 0 at this distance
 export const ATTENUATION_ZERO_DISTANCE_M = 50;
+
+// Match history (saved in localStorage). Bump the key's version if scoring changes,
+// since old totals would no longer be comparable.
+export const HISTORY_LIMIT = 10;
+export const HISTORY_STORAGE_KEY = 'sound-locator:history:v1';

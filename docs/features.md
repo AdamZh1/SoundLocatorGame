@@ -37,6 +37,17 @@ _Layout (UI revamp, October 16, 2026): the three-panel layout was replaced by a 
     *   Completed rounds instantly update to show: `Round X: [Error Meter Amount]m Error`.
     *   After Round 5, display a summary block showing the "Average Match Error".
 
+### Feature 4: Match History (added November 7, 2026)
+*   **Storage:** the last **10** finished matches plus the **all-time best** match, saved in the browser's `localStorage`. Saved once per finished match (abandoned matches are not saved). Unreadable or old-format data starts a fresh history instead of crashing.
+*   **Home screen:** once at least one match exists, a "recent" block shows the best total, the average of the saved matches, and a bar chart of the last 10 totals with a dashed best line.
+*   **During play:** the HUD shows `Best N` under the running score.
+*   **End screen:** "First match saved", "New best +N", or `±N vs. recent avg`, plus the bar chart with the match just played highlighted.
+
+### Feature 5: Background Sound Waves (added November 7, 2026)
+*   Subtle, smoothly flowing waves behind the radar, **during gameplay only** (not on the home or end screens).
+*   They speed up and get more irregular while the sound plays, and again when points are scored (bigger surge for a higher round score), then calm back down.
+*   Driven only by game events, never by the audio's loudness or the target position, so they give no hint about distance or direction. Off when the OS asks for reduced motion.
+
 ---
 
 ## 3. Technical Constraints & State Logic

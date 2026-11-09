@@ -1,6 +1,6 @@
 # Architecture: Spatial Audio Minigame
 
-_Describes the code as it is (last synced October 16, 2026). Known problems and planned changes live in `docs/ArchitectureFixList.md`._
+_Describes the code as it is (last synced November 7, 2026). Known problems and planned changes live in `docs/ArchitectureFixList.md`._
 
 ## 1. Directory Structure
 
@@ -13,7 +13,9 @@ src/
 │   ├── RadarCanvas.tsx         # Main radar: center play node, crosshair, guess placement/drag, reveal choreography
 │   ├── RevealReadout.tsx       # Grade word, score and error under the radar on ROUND_REVEAL
 │   ├── RoundPips.tsx           # HUD top-left: "02/05" + per-round segments colored by grade
-│   ├── ScoreTicker.tsx         # HUD top-right: rolling match total
+│   ├── ScoreTicker.tsx         # HUD top-right: rolling match total + all-time best
+│   ├── SoundWaves.tsx          # Ambient waves behind the game radar, driven by game events (not audio)
+│   ├── HistorySparkline.tsx    # Inline-SVG bar chart of saved match totals + best line
 │   ├── VolumeControl.tsx       # Master volume slider (compact HUD version and full version)
 │   ├── KeyHint.tsx             # <kbd> chip + label
 │   ├── CountUp.tsx             # Number that rolls to a value (motion `animate`, writes textContent)
@@ -25,19 +27,22 @@ src/
 ├── game/
 │   ├── gameReducer.ts          # Round state machine: phases, actions, reducer, selectors (pure)
 │   ├── scoring.ts              # scoreGuess, distanceBetween, randomTarget
-│   └── grading.ts              # gradeFor(score) → { label, tone } + tone → Tailwind class maps
+│   ├── grading.ts              # gradeFor(score) → { label, tone } + tone → Tailwind class maps
+│   ├── matchHistory.ts         # Saved match history: parse/validate, append, averages, localStorage I/O
+│   └── matchHistory.test.ts    # Vitest unit tests (npm run test)
 ├── hooks/
 │   ├── useSpatialAudio.ts      # Web Audio API: buffer loading, spatial playback, volume
 │   ├── useKeyboardShortcuts.ts # Window keydown → handler map, with an enabled flag
-│   └── useCanvasLoop.ts        # DPR-aware canvas + rAF loop that sleeps when idle (Fire/Liquid buttons)
+│   ├── useMatchHistory.ts      # History state (loaded once) + recordMatch
+│   └── useCanvasLoop.ts        # DPR-aware canvas + rAF loop that sleeps when idle (Fire/Liquid buttons, SoundWaves)
 ├── types/
-│   └── index.ts                # Shared types: Vec2, GameState, AppStage, RoundResult, SoundFile
+│   └── index.ts                # Shared types: Vec2, GameState, AppStage, RoundResult, SoundFile, SavedMatch, HistoryStore, MatchRecord
 ├── utils/
 │   ├── format.ts               # formatInt (thousands separators)
 │   ├── audioHelper.ts          # UI click/hover sounds (HTMLAudioElement, not Web Audio)
 │   └── radarMath.ts            # Radar scale (RADAR_MAX_M, RING_DISTANCES_M) and meters <-> screen conversion
 ├── audioConfig.ts              # List of game sounds: { name, file }
-├── gameConfig.ts               # Rounds, score limits, target radius, attenuation distance
+├── gameConfig.ts               # Rounds, score limits, target radius, attenuation distance, history limit/key
 ├── App.tsx                     # Owns all game state and the round loop
 └── main.tsx                    # Vite entry point
 public/
@@ -57,6 +62,8 @@ All state is in `App.tsx`, passed down as props. The round loop is one `useReduc
 | `volume` | `number` | `useState`. Slider value 0–0.5, shown as `volume * 200`% |
 | `isCalibrationOpen` | `boolean` | `useState` |
 | `game` | `Game` | `useReducer(gameReducer)`, fields below |
+| `savedHistory` | `HistoryStore` | `useMatchHistory()`: last 10 matches + all-time best from `localStorage` (section 8) |
+| `matchRecord` | `MatchRecord & { id } \| null` | Set when the finished match is saved; read by `EndScreen`, cleared on Play Again |
 
 `Game`:
 
@@ -78,7 +85,7 @@ Actions: `PLAY_STARTED`, `PLAY_ENDED`, `GUESS_MOVED { guess }`, `GUESS_CONFIRMED
 3. **AUDIO_PLAYING:** `handlePlay` dispatches `PLAY_STARTED`, picks a random loaded sound and awaits `playAudio(...)`, which resolves when the sound ends. Then it dispatches `PLAY_ENDED` → `GUESSING`.
 4. **GUESSING:** a crosshair with a live `distance · bearing` readout follows the pointer (DOM writes, no re-render). Clicking places the accent marker; it can be dragged (pointer events with pointer capture, so touch works). Every click and drag move dispatches `GUESS_MOVED`. "Lock in" (or Enter) is enabled once a guess exists and dispatches `GUESS_CONFIRMED`.
 5. **ROUND_REVEAL:** the reducer scores the guess with `scoreGuess` and appends a `RoundResult` to `history`. `RadarCanvas` plays the reveal: guess pulses and goes hollow, a line draws from guess to target, the target appears with ripples. `RevealReadout` then counts up score and error and shows the grade word (`gradeFor`). The round's `RoundPips` segment fills with the grade color and `ScoreTicker` rolls. Next round / See results (N or Enter).
-6. **Next (`NEXT_ROUND`):** rounds 1–4 → new target, `INIT`. Round 5 → `MATCH_OVER`.
+6. **Next (`NEXT_ROUND`):** rounds 1–4 → new target, `INIT`. Round 5 → `handleNextRound` first saves the match with `recordMatch(game.history)` (section 8), then `MATCH_OVER`.
 7. **MATCH_OVER:** `EndScreen` page: total counts up, overall grade (`gradeFor(total / TOTAL_ROUNDS)`), a `ResultRadar` per round. Play Again (`LiquidButton`, or Enter) dispatches `RESTART`, which rebuilds the whole `Game` (round 1, empty history, new target).
 
 Screens (HOME / GAME / MATCH_OVER) and the calibration sheet are wrapped in `AnimatePresence`; the whole app is inside `<MotionConfig reducedMotion="user">`, and `useCanvasLoop` doesn't animate when the OS asks for reduced motion.
@@ -152,15 +159,39 @@ attenuation = max(0, 1 - (distance / 50)^0.75)
 
 | Component | Props | Role |
 |---|---|---|
-| `HomeScreen` | `onStartGame` | Staggered title, tagline, ambient radar (shared `layoutId`), `FireButton` |
+| `HomeScreen` | `onStartGame, history` | Staggered title, tagline, ambient radar (shared `layoutId`), `FireButton`; a "recent" block (best, last-10 avg, sparkline) once a match exists |
 | `RadarCanvas` | `gameState, guess, onGuessChange, targetCoordinates, subscribeLevel, onPlay, canPlay` | Main radar: center play node, sweep, crosshair, click/drag guessing (controlled: draws `guess`), reveal choreography, audio-level ring |
 | `RevealReadout` | `result` | Grade word, score/error count-up, jingle |
-| `RoundPips` / `ScoreTicker` | `history, round` / `total` | HUD top corners |
+| `RoundPips` / `ScoreTicker` | `history, round` / `total, best` | HUD top corners; ScoreTicker shows the all-time best under the total |
+| `SoundWaves` | `phase, scoreEvent` | Full-screen canvas behind the game screen (section 9) |
+| `HistorySparkline` | `matches, best, highlightId?, delay?, className?` | HTML flex bars, one per saved match (oldest left), dashed best line, highlighted current match. Hovering a slot (full-height hit area) lifts the bar, turns it accent and shows a rounded card (total, date or "This match", "Best" tag), edge-aligned near the ends so it stays on screen |
 | `VolumeControl` | `volume, onVolumeChange, compact?` | Master volume slider (HUD and calibration sheet) |
 | `KeyHint` / `CountUp` | `keys, label` / `value, format?, from?, delay?, duration?` | Small shared pieces |
 | `CalibrationModal` | `onClose, playAudio, volume, onVolumeChange, soundFiles, loaded` | Right-side sheet (Esc closes): play any sound at a chosen distance (5/15/25/35m) and direction, or a point picked on `MiniRadar` |
 | `Radar` / `RadarPoint` | `sizePx?, className, ringClassName, showRingLabels, onSelect, ref` / `pos, className, ...div props` | Shared base for the three radars; `BearingTicks` and `RadarSweep` are optional layers |
 | `MiniRadar` | `selected, onSelectCoordinate` | Click to pick a calibration position (controlled; `CalibrationModal` owns the point) |
-| `EndScreen` | `history, onPlayAgain` | Total count-up, overall grade, a `ResultRadar` per round, `LiquidButton` |
+| `EndScreen` | `history, onPlayAgain, saved, record` | Total count-up, overall grade, a comparison line (first match / new best / vs. recent avg) with a sparkline, a `ResultRadar` per round, `LiquidButton` |
 | `ResultRadar` | `target, guess` | Static radar for one round |
 | `FireButton` / `LiquidButton` | `onClick, children` | Self-contained buttons with decorative canvases driven by `useCanvasLoop` (DPR-aware, loop sleeps when idle; color read from `--color-accent`) |
+
+## 8. Match History: `game/matchHistory.ts` + `useMatchHistory.ts`
+
+Stored in `localStorage` under `HISTORY_STORAGE_KEY` (`sound-locator:history:v1`) as a `HistoryStore`: `{ version: 1, matches, best }`. `matches` is newest first, at most `HISTORY_LIMIT` (10). `best` is kept separately, so a personal best survives dropping out of the last 10. History only exists in the browser it was played in.
+
+- **Pure functions** (unit-tested in `matchHistory.test.ts`): `parseStore` validates the stored JSON by hand and never throws (bad JSON or a wrong version → empty history; individual invalid matches are dropped). `appendMatch` prepends, trims, and replaces `best` only on a strictly higher total. `averageTotal(matches, excludeId?)`.
+- **I/O:** `loadStore` / `saveStore` wrap `localStorage` in try/catch (blocked storage, private mode, full quota → history just doesn't persist).
+- **Hook:** `useMatchHistory()` loads once (lazy `useState`) and returns `{ store, recordMatch }`. `recordMatch(rounds)` is called from `App.handleNextRound` on the last round, inside the event handler, not an effect (StrictMode runs effects twice). A repeat call with the same `history` array returns the first result without saving again (two key presses before a re-render).
+- **Versioning rule:** saved totals are only comparable under the same scoring. If `scoreGuess` or the round count changes, bump the key and `version` so old scores start fresh.
+- Abandoned matches (leaving mid-match) are not saved.
+
+## 9. Background Waves: `SoundWaves.tsx`
+
+Mounted as the first child of the game screen (`-z-10`, `pointer-events-none`), so it only runs during gameplay and never blocks the radar. Drawn with `useCanvasLoop`; `draw` always returns true while mounted. No waves when the OS asks for reduced motion.
+
+- Five layered horizontal waves (two sines plus slow value noise each), low-alpha strokes that fade at the screen edges, one layer in the accent color.
+- **Energy** (refs only, no React state) eases toward `baseline + sustain + impulse`. `sustain` is on while `AUDIO_PLAYING`, with a small attack impulse at the start. A revealed score sets a decaying impulse of `0.2 + 1.2 * score / 10000`, 0.9s after the reveal so it lands with the `ScoreTicker` roll-up. Energy scales the phase speed, the amplitude, and how fast the noise changes.
+- **No hints on purpose:** the waves depend only on the phase and the round score, never on the audio level or the target, so they can't give away distance or direction.
+
+## 10. Tests
+
+`npm run test` runs Vitest (`vitest run`, reusing the Vite config). It currently covers `game/matchHistory.ts`.

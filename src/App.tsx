@@ -9,13 +9,15 @@ import { RoundPips } from './components/RoundPips';
 import { ScoreTicker } from './components/ScoreTicker';
 import { VolumeControl } from './components/VolumeControl';
 import { KeyHint } from './components/KeyHint';
+import { SoundWaves } from './components/SoundWaves';
 import { useSpatialAudio } from './hooks/useSpatialAudio';
 import { useKeyboardShortcuts, type ShortcutBindings } from './hooks/useKeyboardShortcuts';
+import { useMatchHistory } from './hooks/useMatchHistory';
 import { playUiSound, playHoverSound } from './utils/audioHelper';
 import { TOTAL_ROUNDS } from './gameConfig';
 import { gameReducer, createGame, displayedGuess, lastResult } from './game/gameReducer';
 import { randomTarget } from './game/scoring';
-import type { AppStage, Vec2 } from './types';
+import type { AppStage, MatchRecord, Vec2 } from './types';
 
 const fade = {
   initial: { opacity: 0 },
@@ -32,6 +34,9 @@ const App: React.FC = () => {
   const { phase } = game;
 
   const { playAudio, initAudio, subscribeLevel, soundFiles, loaded, loadError } = useSpatialAudio(volume);
+  const { store: savedHistory, recordMatch } = useMatchHistory();
+  // Set when a finished match is saved; tells the end screen how it compares
+  const [matchRecord, setMatchRecord] = useState<(MatchRecord & { id: string }) | null>(null);
 
   const handleStartGame = async () => {
     await initAudio();
@@ -58,10 +63,17 @@ const App: React.FC = () => {
     dispatch({ type: 'GUESS_CONFIRMED' });
   };
   const handleNextRound = () => {
+    if (phase.name !== 'ROUND_REVEAL') return;
     playUiSound();
+    // Save here, in the handler, so the match is recorded once (an effect would run twice in StrictMode).
+    // recordMatch ignores a repeat call for the same history, e.g. N and Enter pressed before a re-render.
+    if (isLastRound) setMatchRecord(recordMatch(game.history));
     dispatch({ type: 'NEXT_ROUND', target: randomTarget() });
   };
-  const handlePlayAgain = () => dispatch({ type: 'RESTART', target: randomTarget() });
+  const handlePlayAgain = () => {
+    setMatchRecord(null);
+    dispatch({ type: 'RESTART', target: randomTarget() });
+  };
 
   const shortcutsByPhase: Partial<Record<typeof phase.name, ShortcutBindings>> = {
     INIT: { ' ': handlePlay },
@@ -113,16 +125,21 @@ const App: React.FC = () => {
       <AnimatePresence>
         {appStage === 'HOME' && (
           <motion.div key="home" className="fixed inset-0" {...fade}>
-            <HomeScreen onStartGame={handleStartGame} />
+            <HomeScreen onStartGame={handleStartGame} history={savedHistory} />
           </motion.div>
         )}
 
         {appStage === 'GAME' && phase.name !== 'MATCH_OVER' && (
           <motion.main key="game" className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden" {...fade}>
+            <SoundWaves
+              phase={phase.name}
+              scoreEvent={revealedResult ? { key: revealedResult.round, score: revealedResult.score } : null}
+            />
+
             {/* HUD: top corners */}
             <div className="absolute inset-x-0 top-0 flex items-start justify-between p-6 sm:p-8">
               <RoundPips history={game.history} round={game.round} />
-              <ScoreTicker total={totalScore} />
+              <ScoreTicker total={totalScore} best={savedHistory.best?.total ?? null} />
             </div>
 
             <RadarCanvas
@@ -167,7 +184,7 @@ const App: React.FC = () => {
 
         {appStage === 'GAME' && phase.name === 'MATCH_OVER' && (
           <motion.div key="end" className="fixed inset-0" {...fade}>
-            <EndScreen history={game.history} onPlayAgain={handlePlayAgain} />
+            <EndScreen history={game.history} onPlayAgain={handlePlayAgain} saved={savedHistory} record={matchRecord} />
           </motion.div>
         )}
       </AnimatePresence>

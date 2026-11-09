@@ -6,15 +6,20 @@ import { BearingTicks, Radar, RadarSweep } from './Radar';
 import { RADAR_LAYOUT_ID } from './RadarCanvas';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { playUiSound } from '../utils/audioHelper';
+import { HistorySparkline } from './HistorySparkline';
+import { averageTotal } from '../game/matchHistory';
+import { formatInt } from '../utils/format';
+import type { HistoryStore } from '../types';
 
 interface HomeScreenProps {
   onStartGame: () => void;
+  history: HistoryStore;
 }
 
 const TITLE = 'sound locator';
 const easeOut = [0.16, 1, 0.3, 1] as const;
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
+const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, history }) => {
   useKeyboardShortcuts({ ' ': () => { playUiSound(); onStartGame(); } }, true);
 
   return (
@@ -55,9 +60,30 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
           <KeyHint keys={['Space']} label="to start" />
         </div>
         <p className="label">Headphones recommended</p>
+        {history.matches.length > 0 && <RecentMatches history={history} />}
       </motion.div>
     </div>
   );
 };
+
+// Best, recent average and a trend of the last matches. Only shown once a match has been played.
+const RecentMatches: React.FC<{ history: HistoryStore }> = ({ history }) => {
+  const best = history.best?.total ?? null;
+  const average = averageTotal(history.matches);
+  return (
+    <div className="flex items-end gap-4 rounded-2xl border border-line bg-surface/60 px-5 py-4 backdrop-blur-sm sm:gap-6">
+      <Stat label="Best" value={best} />
+      <Stat label={`Avg · last ${history.matches.length}`} value={average} />
+      <HistorySparkline matches={history.matches} best={best} className="h-9 w-24 sm:w-32" />
+    </div>
+  );
+};
+
+const Stat: React.FC<{ label: string; value: number | null }> = ({ label, value }) => (
+  <div className="flex flex-col gap-1">
+    <span className="label whitespace-nowrap">{label}</span>
+    <span className="font-mono text-lg tabular-nums leading-none">{value === null ? '—' : formatInt(value)}</span>
+  </div>
+);
 
 export default HomeScreen;
